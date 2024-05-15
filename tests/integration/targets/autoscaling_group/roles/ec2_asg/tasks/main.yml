@@ -23,6 +23,15 @@
       ansible.builtin.set_fact:
         ansible_async_dir: "{{ lookup('env', 'HOME') }}/.ansible_async_{{ tiny_prefix }}/"
       when: (lookup('env', 'HOME'))
+      module_defaults:
+        group/aws:
+          access_key: "{{ aws_access_key }}"
+          secret_key: "{{ aws_secret_key }}"
+          session_token: "{{ security_token | default(omit) }}"
+          region: "{{ aws_region }}"
+          aws_config:
+            retries:
+              max_attempts: 20
 
     - ansible.builtin.debug:
         msg: "{{ inventory_hostname }} start: {{ lookup('pipe','date') }}"
@@ -32,6 +41,16 @@
   always:
     - ansible.builtin.set_fact:
         _role_complete: true
+      module_defaults:
+        group/aws:
+          access_key: "{{ aws_access_key }}"
+          secret_key: "{{ aws_secret_key }}"
+          session_token: "{{ security_token | default(omit) }}"
+          region: "{{ aws_region }}"
+          aws_config:
+            retries:
+              max_attempts: 20
+
     - vars:
         completed_hosts: '{{ ansible_play_hosts_all | map("extract", hostvars, "_role_complete") | list | select("defined") | list | length }}'
         hosts_in_play: "{{ ansible_play_hosts_all | length }}"
