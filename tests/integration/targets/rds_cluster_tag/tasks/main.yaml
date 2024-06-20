@@ -7,14 +7,14 @@
       session_token: "{{ security_token | default(omit) }}"
   block:
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         engine: "{{ engine}}"
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -22,13 +22,13 @@
       ignore_errors: true
 
     - name: Create a DB cluster
-      rds_cluster:
+      register: _result_create_db_cluster
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         cluster_id: "{{ cluster_id }}"
         tags: "{{ tags_create }}"
-      register: _result_create_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -62,14 +62,14 @@
           - "'vpc_security_groups' in _result_create_db_cluster"
 
     - name: Test tags are not purged if purge_tags is False
-      rds_cluster:
+      register: _result_tag_db_cluster
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ new_password }}"
         cluster_id: "{{ cluster_id }}"
         tags: {}
         purge_tags: false
-      register: _result_tag_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -103,11 +103,11 @@
           - "'vpc_security_groups' in _result_tag_db_cluster"
 
     - name: Add a tag and remove a tag (purge_tags is True)
-      rds_cluster:
+      register: _result_tag_db_cluster
+      amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}"
         state: present
         tags: "{{ tags_patch }}"
-      register: _result_tag_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -140,29 +140,29 @@
           - "'vpc_security_groups' in _result_tag_db_cluster"
 
     - name: Purge a tag from the cluster (CHECK MODE)
-      rds_cluster:
+      register: _result_tag_db_cluster
+      check_mode: true
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         cluster_id: "{{ cluster_id }}"
         tags:
           Created_By: Ansible_rds_cluster_integration_test
-      register: _result_tag_db_cluster
-      check_mode: true
 
     - ansible.builtin.assert:
         that:
           - _result_tag_db_cluster.changed
 
     - name: Purge a tag from the cluster
-      rds_cluster:
+      register: _result_tag_db_cluster
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         cluster_id: "{{ cluster_id }}"
         tags:
           Created_By: Ansible_rds_cluster_integration_test
-      register: _result_tag_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -195,7 +195,9 @@
           - "'vpc_security_groups' in _result_tag_db_cluster"
 
     - name: Add a tag to the cluster (CHECK MODE)
-      rds_cluster:
+      register: _result_tag_db_cluster
+      check_mode: true
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
@@ -203,21 +205,19 @@
         tags:
           Name: cluster-{{ resource_prefix }}
           Created_By: Ansible_rds_cluster_integration_test
-      register: _result_tag_db_cluster
-      check_mode: true
 
     - ansible.builtin.assert:
         that:
           - _result_tag_db_cluster.changed
 
     - name: Add a tag to the cluster
-      rds_cluster:
+      register: _result_tag_db_cluster
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         cluster_id: "{{ cluster_id }}"
         tags: "{{ tags_create }}"
-      register: _result_tag_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -248,15 +248,15 @@
           - _result_tag_db_cluster.tags | length == 2
           - _result_tag_db_cluster.tags["Created_By"] == "{{ tags_create["Created_By"]}}"
           - _result_tag_db_cluster.tags["Name"] == "{{ tags_create["Name"]}}"
-          - "'vpc_security_groups' in _result_tag_db_cluster"
+
     - name: Remove all tags
-      rds_cluster:
+      register: _result_tag_db_cluster
+      amazon.aws.rds_cluster:
         engine: "{{ engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         cluster_id: "{{ cluster_id }}"
         tags: {}
-      register: _result_tag_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -286,10 +286,10 @@
           - "'tags' in _result_tag_db_cluster"
           - _result_tag_db_cluster.tags | length == 0
           - "'vpc_security_groups' in _result_tag_db_cluster"
-  always:
+
     - name: Delete DB cluster without creating a final snapshot
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ cluster_id }}"
         skip_final_snapshot: true
-      ignore_errors: true

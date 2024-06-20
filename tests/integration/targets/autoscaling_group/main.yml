@@ -14,21 +14,14 @@
           region: "{{ aws_region }}"
       block:
         - ansible.builtin.include_role:
-            name: setup_ec2_facts
+
         - ansible.builtin.include_role:
             name: ec2_asg
             tasks_from: env_setup.yml
-      rescue:
+
         - ansible.builtin.include_role:
             name: ec2_asg
             tasks_from: env_cleanup.yml
-          run_once: true
+
         - ansible.builtin.fail:
             msg: Environment preparation failed
-          run_once: true
-- hosts: all
-  gather_facts: false
-  strategy: free
-  serial: 6
-  roles:
-    - ec2_asg
