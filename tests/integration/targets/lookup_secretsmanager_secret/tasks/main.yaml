@@ -57,7 +57,7 @@
           - get_missing_secret is failed
 
     - name: create secret "{{ secret_name }}"
-      secretsmanager_secret:
+      community.aws.secretsmanager_secret:
         name: "{{ secret_name }}"
         secret: "{{ secret_value }}"
         tags:
@@ -74,7 +74,7 @@
           - look_secret == secret_value
 
     - name: delete secret
-      secretsmanager_secret:
+      community.aws.secretsmanager_secret:
         name: "{{ secret_name }}"
         state: absent
         recovery_window: 7
@@ -111,10 +111,9 @@
           - get_deleted_secret is failed
 
   always:
-  # delete secret created
     - name: delete secret
-      secretsmanager_secret:
+      ignore_errors: true
+      community.aws.secretsmanager_secret:
         name: "{{ secret_name }}"
         state: absent
         recovery_window: 0
-      ignore_errors: true

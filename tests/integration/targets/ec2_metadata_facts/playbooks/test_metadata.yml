@@ -6,6 +6,7 @@
 
     - amazon.aws.ec2_metadata_facts:
 
+
     - name: Assert initial metadata for the instance
       ansible.builtin.assert:
         that:

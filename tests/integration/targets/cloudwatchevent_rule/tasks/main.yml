@@ -20,11 +20,8 @@
         description: Rule for {{ item }}
         state: present
         schedule_expression: cron(0 20 * * ? *)
-        targets:
-          - id: "{{ sns_topic_output.sns_topic.name }}"
-            arn: "{{ sns_topic_output.sns_topic.topic_arn }}"
+        targets: "{{ test_event_names }}"
       register: event_rules_classic_output
-      loop: "{{ test_event_names }}"
 
     - name: Assert that classic event rules were created
       ansible.builtin.assert:
@@ -96,7 +93,6 @@
         that:
           - event_rule_input_transformer_output.changed
 
-  always:
     - name: Delete classic CloudWatch event rules
       amazon.aws.cloudwatchevent_rule:
         name: "{{ item }}"

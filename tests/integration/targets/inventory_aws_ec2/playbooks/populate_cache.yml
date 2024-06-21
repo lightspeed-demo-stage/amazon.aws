@@ -12,6 +12,3 @@
           region: "{{ aws_region }}"
       block:
         - ansible.builtin.debug:
-            var: groups
-
-        - ansible.builtin.include_tasks: tasks/tear_down.yml
