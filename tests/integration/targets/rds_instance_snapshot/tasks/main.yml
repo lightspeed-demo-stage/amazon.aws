@@ -39,24 +39,24 @@
           - _result_instance_snapshot_info.snapshots | length == 1
 
     - name: Take a snapshot of the existing RDS instance (CHECK_MODE)
-      rds_instance_snapshot:
+      check_mode: true
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}"
-      check_mode: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
           - _result_instance_snapshot.changed
 
     - name: Take a snapshot of the existing RDS instance
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}"
         wait: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -91,24 +91,24 @@
           - "'vpc_id' in _result_instance_snapshot"
 
     - name: Take a snapshot of the existing RDS instance (CHECK_MODE - IDEMPOTENCE)
-      rds_instance_snapshot:
+      check_mode: true
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}"
-      check_mode: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
           - not _result_instance_snapshot.changed
 
     - name: Take a snapshot of the existing RDS instance (IDEMPOTENCE)
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}"
         wait: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -154,12 +154,12 @@
           - _result_instance_snapshot_info.snapshots[0].db_snapshot_identifier == snapshot_id
 
     - name: Take another snapshot of the existing RDS instance
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
         wait: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -204,49 +204,50 @@
     #- _result_instance_snapshot_info.cluster_snapshots | length == 3
 
     - name: Delete existing DB instance snapshot (CHECK_MODE)
-      rds_instance_snapshot:
-        state: absent
-        db_snapshot_identifier: "{{ snapshot_id }}-b"
       register: _result_delete_snapshot
       check_mode: true
+      amazon.aws.rds_instance_snapshot:
+        state: absent
+        db_snapshot_identifier: "{{ snapshot_id }}-b"
 
     - ansible.builtin.assert:
         that:
           - _result_delete_snapshot.changed
 
     - name: Delete the existing DB instance snapshot
-      rds_instance_snapshot:
+      register: _result_delete_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: absent
         db_snapshot_identifier: "{{ snapshot_id }}-b"
-      register: _result_delete_snapshot
 
     - ansible.builtin.assert:
         that:
           - _result_delete_snapshot.changed
 
     - name: Delete existing DB instance snapshot (CHECK_MODE - IDEMPOTENCE)
-      rds_instance_snapshot:
-        state: absent
-        db_snapshot_identifier: "{{ snapshot_id }}-b"
       register: _result_delete_snapshot
       check_mode: true
+      amazon.aws.rds_instance_snapshot:
+        state: absent
+        db_snapshot_identifier: "{{ snapshot_id }}-b"
 
     - ansible.builtin.assert:
         that:
           - not _result_delete_snapshot.changed
 
     - name: Delete the existing DB instance snapshot (IDEMPOTENCE)
-      rds_instance_snapshot:
+      register: _result_delete_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: absent
         db_snapshot_identifier: "{{ snapshot_id }}-b"
-      register: _result_delete_snapshot
 
     - ansible.builtin.assert:
         that:
           - not _result_delete_snapshot.changed
 
     - name: Take another snapshot of the existing RDS instance and assign tags
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
@@ -254,7 +255,6 @@
         tags:
           tag_one: "{{ snapshot_id }}-b One"
           Tag Two: two {{ snapshot_id }}-b
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -292,7 +292,8 @@
           - "'vpc_id' in _result_instance_snapshot"
 
     - name: Attempt to take another snapshot of the existing RDS instance and assign tags (idempotence)
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
@@ -300,21 +301,20 @@
         tags:
           tag_one: "{{ snapshot_id }}-b One"
           Tag Two: two {{ snapshot_id }}-b
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
           - not _result_instance_snapshot.changed
 
     - name: Take another snapshot of the existing RDS instance and update tags
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
         tags:
           tag_three: "{{ snapshot_id }}-b Three"
           Tag Two: two {{ snapshot_id }}-b
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -352,14 +352,14 @@
           - "'vpc_id' in _result_instance_snapshot"
 
     - name: Take another snapshot of the existing RDS instance and update tags without purge
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
         purge_tags: false
         tags:
           tag_one: "{{ snapshot_id }}-b One"
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -398,11 +398,11 @@
           - "'vpc_id' in _result_instance_snapshot"
 
     - name: Take another snapshot of the existing RDS instance and do not specify any tag to ensure previous tags are not removed
-      rds_instance_snapshot:
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         state: present
         db_instance_identifier: "{{ instance_id }}"
         db_snapshot_identifier: "{{ snapshot_id }}-b"
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -462,13 +462,13 @@
         that:
           - not _result_instance_snapshot.changed
 
-    - name: Copy a snapshot (idempotence)
-      rds_instance_snapshot:
+    - name: Copy a snapshot
+      register: _result_instance_snapshot
+      amazon.aws.rds_instance_snapshot:
         id: "{{ snapshot_id }}-copy"
         source_id: "{{ snapshot_id }}-b"
         copy_tags: true
         wait: true
-      register: _result_instance_snapshot
 
     - ansible.builtin.assert:
         that:
@@ -482,18 +482,17 @@
           - _result_instance_snapshot.tags["Tag Two"] == "two {{ snapshot_id }}-b"
           - _result_instance_snapshot.tags["tag_three"] == snapshot_id+"-b Three"
 
-  always:
     - name: Delete the existing DB instance snapshots
-      rds_instance_snapshot:
-        state: absent
-        db_snapshot_identifier: "{{ item }}"
-        wait: false
       register: _result_delete_snapshot
       ignore_errors: true
       loop:
         - "{{ snapshot_id }}"
         - "{{ snapshot_id }}-b"
         - "{{ snapshot_id }}-copy"
+      amazon.aws.rds_instance_snapshot:
+        state: absent
+        db_snapshot_identifier: "{{ item }}"
+        wait: false
 
     - name: Delete the existing RDS instance without creating a final snapshot
       amazon.aws.rds_instance:
