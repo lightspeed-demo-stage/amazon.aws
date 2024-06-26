@@ -2,7 +2,6 @@
 - name: Run tests for testing remove cluster from global db
   block:
     # Create global db -------------------------------------------------------------------------------
-
     - name: Create rds global database
       amazon.cloud.rds_global_cluster:
         global_cluster_identifier: "{{ test_global_cluster_name }}"
@@ -11,8 +10,6 @@
         region: "{{ test_primary_cluster_region }}"
         state: present
       register: create_global_result
-
-    # Create primary cluster with an instance ---------------------------------------------------------------
 
     - name: Create a primary cluster for global database
       amazon.aws.rds_cluster:
@@ -57,8 +54,6 @@
         that:
           - global_cluster_info.GlobalClusters[0].GlobalClusterMembers[0].DBClusterArn == primary_cluster_info_result.clusters[0].db_cluster_arn
 
-    # Create replica cluster -------------------------------------------------------------------------------
-
     - name: Create a replica cluster for global database
       amazon.aws.rds_cluster:
         global_cluster_identifier: "{{ test_global_cluster_name }}"
@@ -92,8 +87,6 @@
         that:
           - global_cluster_info.GlobalClusters[0].GlobalClusterMembers[1].DBClusterArn == replica_cluster_info_result.clusters[0].db_cluster_arn
 
-    # Test delete on replica cluster part of global db----------------------------------------------------------------
-
     - name: Delete DB cluster without final snapshot (fails as its a part of global db)
       amazon.aws.rds_cluster:
         db_cluster_identifier: "{{ test_replica_cluster_name }}"
@@ -110,8 +103,6 @@
           - delete_replica_cluster_result is failed
           - delete_replica_cluster_result is not changed
           - '"is a part of a global cluster, please remove it from global cluster" in delete_replica_cluster_result.error.message'
-
-    # Test modify replica DB cluster along with removing it from global db------------------------------------------------
 
     - name: Remove replica DB cluster from global DB and modify cluster port
       amazon.aws.rds_cluster:
@@ -154,8 +145,6 @@
           - global_cluster_info.GlobalClusters[0].GlobalClusterMembers | length == 1
           - global_cluster_info.GlobalClusters[0].GlobalClusterMembers[0].DBClusterArn != replica_cluster_info_result.clusters[0].db_cluster_arn
 
-    # Test delete on replica cluster as NOT a part of global db----------------------------------------------------------------
-
     - name: Delete replica cluster
       amazon.aws.rds_cluster:
         db_cluster_identifier: "{{ test_replica_cluster_name }}"
@@ -171,7 +160,6 @@
           - delete_replica_cluster_result is not failed
           - delete_replica_cluster_result is changed
 
-    # Test remove primary cluster from global db------------------------------------------------------------
     - name: Remove primary cluster from global db
       amazon.aws.rds_cluster:
         global_cluster_identifier: "{{ test_global_cluster_name }}"
@@ -197,9 +185,8 @@
         that:
           - global_cluster_info.GlobalClusters[0].GlobalClusterMembers | length == 0
 
-  # Cleanup starts------------------------------------------------------------
+    # Cleanup starts------------------------------------------------------------
 
-  always:
     - name: Delete replica cluster
       amazon.aws.rds_cluster:
         db_cluster_identifier: "{{ test_replica_cluster_name }}"
