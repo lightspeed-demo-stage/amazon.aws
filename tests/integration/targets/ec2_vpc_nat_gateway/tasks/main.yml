@@ -8,6 +8,406 @@
       region: "{{ aws_region }}"
   block:
   # ============================================================
+
+    - name: Create a VPC
+      amazon.aws.ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        state: present
+        cidr_block: "{{ vpc_cidr }}"
+      register: vpc_result
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - vpc_result is successful
+          - '"vpc" in vpc_result'
+          - '"cidr_block" in vpc_result.vpc'
+          - vpc_result.vpc.cidr_block == vpc_cidr
+          - '"id" in vpc_result.vpc'
+          - vpc_result.vpc.id.startswith("vpc-")
+          - '"state" in vpc_result.vpc'
+          - vpc_result.vpc.state == 'available'
+          - '"tags" in vpc_result.vpc'
+
+    - name: "Set fact: VPC ID"
+      ansible.builtin.set_fact:
+        vpc_id: "{{ vpc_result.vpc.id }}"
+
+    - name: Allocate a new EIP
+      amazon.aws.ec2_eip:
+        in_vpc: true
+        reuse_existing_ip_allowed: true
+        tag_name: FREE
+      register: eip_result
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - eip_result is successful
+          - '"allocation_id" in eip_result'
+          - eip_result.allocation_id.startswith("eipalloc-")
+          - '"public_ip" in eip_result'
+
+    - name: "set fact: EIP allocation ID and EIP public IP"
+      ansible.builtin.set_fact:
+        eip_address: "{{ eip_result.public_ip }}"
+        allocation_id: "{{ eip_result.allocation_id }}"
+
+    - name: Create subnet and associate to the VPC
+      amazon.aws.ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc_id }}"
+        cidr: "{{ subnet_cidr }}"
+      register: subnet_result
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - subnet_result is successful
+          - '"subnet" in subnet_result'
+          - '"cidr_block" in subnet_result.subnet'
+          - subnet_result.subnet.cidr_block == subnet_cidr
+          - '"id" in subnet_result.subnet'
+          - subnet_result.subnet.id.startswith("subnet-")
+          - '"state" in subnet_result.subnet'
+          - subnet_result.subnet.state == 'available'
+          - '"tags" in subnet_result.subnet'
+          - subnet_result.subnet.vpc_id == vpc_id
+
+    - name: "set fact: VPC subnet ID"
+      ansible.builtin.set_fact:
+        subnet_id: "{{ subnet_result.subnet.id }}"
+
+    - name: Search for NAT gateways by subnet (no matches) - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway_info:
+        filters:
+          subnet-id: "{{ subnet_id }}"
+          state: [available]
+      register: existing_ngws
+      check_mode: true
+
+    - name: Assert no NAT gateway found - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - existing_ngws is successful
+          - (existing_ngws.result|length) == 0
+
+    - name: Search for NAT gateways by subnet - no matches
+      amazon.aws.ec2_vpc_nat_gateway_info:
+        filters:
+          subnet-id: "{{ subnet_id }}"
+          state: [available]
+      register: existing_ngws
+
+    - name: Assert no NAT gateway found
+      ansible.builtin.assert:
+        that:
+          - existing_ngws is successful
+          - (existing_ngws.result|length) == 0
+
+    - name: Create IGW
+      amazon.aws.ec2_vpc_igw:
+        vpc_id: "{{ vpc_id }}"
+      register: create_igw
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - create_igw is successful
+          - create_igw.gateway_id.startswith("igw-")
+          - create_igw.vpc_id == vpc_id
+          - '"gateway_id" in create_igw'
+
+    - name: Create new NAT gateway with eip allocation-id - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        allocation_id: "{{ allocation_id }}"
+        wait: true
+      register: create_ngw
+      check_mode: true
+
+    - name: Assert creation happened (expected changed=true) - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - create_ngw.changed
+
+    - name: Create new NAT gateway with eip allocation-id
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        allocation_id: "{{ allocation_id }}"
+        wait: true
+      register: create_ngw
+
+    - name: Assert creation happened (expected changed=true)
+      ansible.builtin.assert:
+        that:
+          - create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: "set facts: NAT gateway ID"
+      ansible.builtin.set_fact:
+        nat_gateway_id: "{{ create_ngw.nat_gateway_id }}"
+        network_interface_id: "{{ create_ngw.nat_gateway_addresses[0].network_interface_id }}"
+
+    - name: Get NAT gateway with specific filters (state and subnet)
+      amazon.aws.ec2_vpc_nat_gateway_info:
+        filters:
+          subnet-id: "{{ subnet_id }}"
+          state: [available]
+      register: avalaible_ngws
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - avalaible_ngws is successful
+          - avalaible_ngws.result | length == 1
+          - '"create_time" in first_ngw'
+          - '"nat_gateway_addresses" in first_ngw'
+          - '"nat_gateway_id" in first_ngw'
+          - first_ngw.nat_gateway_id == nat_gateway_id
+          - '"state" in first_ngw'
+          - first_ngw.state == 'available'
+          - '"subnet_id" in first_ngw'
+          - first_ngw.subnet_id == subnet_id
+          - '"tags" in first_ngw'
+          - '"vpc_id" in first_ngw'
+          - first_ngw.vpc_id == vpc_id
+      vars:
+        first_ngw: "{{ avalaible_ngws.result[0] }}"
+
+    - name: Trying this again for idempotency - create new NAT gateway with eip allocation-id - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        allocation_id: "{{ allocation_id }}"
+        wait: true
+      register: create_ngw
+      check_mode: true
+
+    - name: Assert recreation would do nothing (expected changed=false) - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Trying this again for idempotency - create new NAT gateway with eip allocation-id
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        allocation_id: "{{ allocation_id }}"
+        wait: true
+      register: create_ngw
+
+    - name: Assert recreation would do nothing (expected changed=false)
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Create new NAT gateway only if one does not exist already - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway:
+        if_exist_do_not_create: true
+        subnet_id: "{{ subnet_id }}"
+        wait: true
+      register: create_ngw
+      check_mode: true
+
+    - name: Assert recreation would do nothing (expected changed=false) - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Create new NAT gateway only if one does not exist already
+      amazon.aws.ec2_vpc_nat_gateway:
+        if_exist_do_not_create: true
+        subnet_id: "{{ subnet_id }}"
+        wait: true
+      register: create_ngw
+
+    - name: Assert recreation would do nothing (expected changed=false)
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Allocate a new EIP
+      amazon.aws.ec2_eip:
+        in_vpc: true
+        reuse_existing_ip_allowed: true
+        tag_name: FREE
+      register: eip_result
+
+    - name: Assert success
+      ansible.builtin.assert:
+        that:
+          - eip_result is successful
+          - '"allocation_id" in eip_result'
+          - eip_result.allocation_id.startswith("eipalloc-")
+          - '"public_ip" in eip_result'
+
+    - name: "Set fact: EIP allocation ID and EIP public IP"
+      ansible.builtin.set_fact:
+        second_eip_address: "{{ eip_result.public_ip }}"
+        second_allocation_id: "{{ eip_result.allocation_id }}"
+
+    - name: Create new nat gateway with eip address - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        eip_address: "{{ second_eip_address }}"
+        wait: true
+      register: create_ngw
+      check_mode: true
+
+    - name: Assert creation happened (expected changed=true) - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - create_ngw.changed
+
+    - name: Create new NAT gateway with eip address
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        eip_address: "{{ second_eip_address }}"
+        wait: true
+      register: create_ngw
+
+    - name: Assert creation happened (expected changed=true)
+      ansible.builtin.assert:
+        that:
+          - create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == second_allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Trying this again for idempotency - create new NAT gateway with eip address - CHECK_MODE
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        eip_address: "{{ second_eip_address }}"
+        wait: true
+      register: create_ngw
+      check_mode: true
+
+    - name: Assert recreation would do nothing (expected changed=false) - CHECK_MODE
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == second_allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Trying this again for idempotency -  create new NAT gateway with eip address
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        eip_address: "{{ second_eip_address }}"
+        wait: true
+      register: create_ngw
+
+    - name: Assert recreation would do nothing (expected changed=false)
+      ansible.builtin.assert:
+        that:
+          - not create_ngw.changed
+          - '"create_time" in create_ngw'
+          - '"nat_gateway_addresses" in create_ngw'
+          - '"nat_gateway_id" in create_ngw'
+          - create_ngw.nat_gateway_addresses[0].allocation_id == second_allocation_id
+          - create_ngw.nat_gateway_id.startswith("nat-")
+          - '"state" in create_ngw'
+          - create_ngw.state == 'available'
+          - '"subnet_id" in create_ngw'
+          - create_ngw.subnet_id == subnet_id
+          - '"tags" in create_ngw'
+          - '"vpc_id" in create_ngw'
+          - create_ngw.vpc_id == vpc_id
+
+    - name: Create new NAT gateway when eip_address is invalid and create_default is true
+      amazon.aws.ec2_vpc_nat_gateway:
+        subnet_id: "{{ subnet_id }}"
+        eip_address: 192.0.2.1
+        state: present
+        wait: true
+        default_create: true
+      register: _nat_gateway
+
+- name: ec2_vpc_nat_gateway tests
+  module_defaults:
+    group/aws:
+      access_key: "{{ aws_access_key }}"
+      secret_key: "{{ aws_secret_key }}"
+      session_token: "{{ security_token | default(omit) }}"
+      region: "{{ aws_region }}"
+  block:
+  # ============================================================
     - name: Create a VPC
       amazon.aws.ec2_vpc_net:
         name: "{{ vpc_name }}"
