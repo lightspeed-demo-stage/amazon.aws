@@ -8,7 +8,7 @@
   block:
     - name: List available Regions
       community.aws.aws_region_info:
-      register: regions
+
     - name: check task return attributes
       vars:
         first_region: "{{ regions.regions[0] }}"
@@ -23,7 +23,7 @@
 
     - name: List available Regions - check_mode
       community.aws.aws_region_info:
-      register: check_regions
+
     - name: check task return attributes - check_mode
       vars:
         first_region: "{{ check_regions.regions[0] }}"
@@ -40,7 +40,7 @@
       community.aws.aws_region_info:
         filters:
           region-name: us-west-1
-      register: us_west_1
+
     - name: check task return attributes - filtering using -
       vars:
         first_region: "{{ us_west_1.regions[0] }}"
@@ -61,7 +61,7 @@
       community.aws.aws_region_info:
         filters:
           region_name: us-west-2
-      register: us_west_2
+
     - name: check task return attributes - filtering using _
       vars:
         first_region: "{{ us_west_2.regions[0] }}"
@@ -83,7 +83,7 @@
         filters:
           region-name: eu-west-1
           region_name: eu-central-1
-      register: regions_prededence
+
     - name: check task return attributes - precedence
       vars:
         first_region: "{{ regions_prededence.regions[0] }}"
