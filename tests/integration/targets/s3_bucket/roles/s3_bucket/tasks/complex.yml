@@ -1,7 +1,7 @@
 ---
 - block:
     - ansible.builtin.set_fact:
-        local_bucket_name: "{{ bucket_name | hash('md5')}}complex"
+
     - name: Create more complex s3_bucket
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
@@ -65,7 +65,6 @@
           - output.policy.Statement[0].Resource == 'arn:aws:s3:::{{ local_bucket_name }}/*'
           - output.policy.Statement[0].Sid == 'AddPerm'
 
-    # ============================================================
     - name: Update bucket policy on complex bucket
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
@@ -141,8 +140,8 @@
         that:
           - output is not changed
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure all buckets are deleted
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
