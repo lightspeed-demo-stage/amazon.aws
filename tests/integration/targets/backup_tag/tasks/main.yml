@@ -112,7 +112,6 @@
           - remove_all_tags_result.tags | length == 0
           - remove_all_tags_result.removed_tags | length == 2
 
-  always:
     - name: Delete AWS Backup Vault created during this test
       amazon.aws.backup_vault:
         backup_vault_name: "{{ backup_vault_name }}"
