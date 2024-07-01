@@ -10,14 +10,14 @@
 
   block:
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         engine: mysql
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -25,7 +25,9 @@
       ignore_errors: true
 
     - name: Create a source DB cluster (CHECK_MODE)
-      rds_cluster:
+      register: _result_create_source_db_cluster
+      check_mode: true
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         engine: mysql
@@ -37,15 +39,14 @@
         password: "{{ password }}"
         wait: true
         tags: "{{ tags_create }}"
-      register: _result_create_source_db_cluster
-      check_mode: true
 
     - ansible.builtin.assert:
         that:
           - _result_create_source_db_cluster.changed
 
     - name: Create a source DB cluster
-      rds_cluster:
+      register: _result_create_source_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         engine: mysql
@@ -57,18 +58,16 @@
         password: "{{ password }}"
         wait: true
         tags: "{{ tags_create }}"
-      register: _result_create_source_db_cluster
 
     - ansible.builtin.assert:
         that:
           - _result_create_source_db_cluster.changed
 
-  always:
     - name: Delete DB cluster without creating a final snapshot
-      rds_cluster:
-        state: absent
-        cluster_id: "{{ item }}"
-        skip_final_snapshot: true
       ignore_errors: true
       loop:
         - "{{ cluster_id }}"
+      amazon.aws.rds_cluster:
+        state: absent
+        cluster_id: "{{ item }}"
+        skip_final_snapshot: true
