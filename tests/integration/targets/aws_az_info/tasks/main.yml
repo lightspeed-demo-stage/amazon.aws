@@ -9,7 +9,6 @@
   block:
     - name: List available AZs in current Region
       amazon.aws.aws_az_info:
-      register: region_azs
 
     - name: check task return attributes
       vars:
@@ -31,7 +30,6 @@
     - name: List available AZs in current Region - check_mode
       amazon.aws.aws_az_info:
       check_mode: true
-      register: check_azs
 
     - name: check task return attributes
       vars:
@@ -50,11 +48,9 @@
           - '"zone_name" in first_az'
           - '"zone_type" in first_az'
 
-    # Be specific - aws_region isn't guaranteed to be any specific value
     - name: List Available AZs in us-east-1
       amazon.aws.aws_az_info:
         region: us-east-1
-      register: us_east_1
 
     - name: Check that an AZ from us-east-1 has valid looking attributes
       vars:
@@ -86,7 +82,6 @@
         region: us-west-2
         filters:
           zone-name: us-west-2c
-      register: us_west_2
 
     - name: Check that an AZ from us-west-2 has attributes we expect
       vars:
@@ -119,7 +114,6 @@
         region: eu-central-1
         filters:
           zone_name: eu-central-1b
-      register: eu_central_1
 
     - name: Check that eu-central-1b has the attributes we expect
       vars:
@@ -152,8 +146,6 @@
         region: eu-west-2
         filters:
           zone-name: eu-west-2a
-          zone_name: eu-west-2c
-      register: eu_west_2
 
     - name: Check that we get the AZ specified by zone_name rather than zone-name
       vars:
