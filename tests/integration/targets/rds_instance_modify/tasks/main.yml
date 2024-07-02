@@ -84,7 +84,6 @@
     # TODO: test modifying db_subnet_group_name, db_security_groups, db_parameter_group_name, option_group_name,
     # monitoring_role_arn, monitoring_interval, domain, domain_iam_role_name, cloudwatch_logs_export_configuration
 
-    # ------------------------------------------------------------------------------------------
     - name: Modify the storage type without immediate application - check_mode
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
@@ -194,8 +193,6 @@
           - result.changed
           - result.db_instance_identifier == modified_instance_id
 
-    # Test modifying CA certificate identifier -------------------------------------------
-
     - name: Modify the CA certificate identifier to rds-ca-ecc384-g1 - check_mode
       amazon.aws.rds_instance:
         state: present
@@ -214,7 +211,7 @@
     - name: Get curent CA certificate identifier
       amazon.aws.rds_instance_info:
         db_instance_identifier: "{{ modified_instance_id }}"
-      register: db_info
+
     - name: Assert that CA certificate identifier has been modified - check_mode
       ansible.builtin.assert:
         that:
@@ -242,7 +239,7 @@
       register: db_info
       retries: 20
       delay: 10
-      until: db_info.instances[0].ca_certificate_identifier == "rds-ca-ecc384-g1"
+
     - name: Assert that CA certificate identifier has been modified
       ansible.builtin.assert:
         that:
@@ -269,7 +266,7 @@
       register: db_info
       retries: 20
       delay: 10
-      until: db_info.instances[0].ca_certificate_identifier == "rds-ca-ecc384-g1"
+
     - name: Assert that CA certificate identifier has been modified
       ansible.builtin.assert:
         that:
@@ -297,16 +294,15 @@
       register: db_info
       retries: 20
       delay: 10
-      until: db_info.instances[0].ca_certificate_identifier == "rds-ca-ecc384-g1"
+
     - name: Assert that CA certificate identifier has been modified
       ansible.builtin.assert:
         that:
           - result is not changed
           - result is not failed
           - db_info.instances[0].ca_certificate_identifier == "rds-ca-ecc384-g1"
-  # Test modifying CA certificate identifier Complete-------------------------------------------
+          # Test modifying CA certificate identifier Complete-------------------------------------------
 
-  always:
     - name: Delete the instance
       amazon.aws.rds_instance:
         id: "{{ item }}"
