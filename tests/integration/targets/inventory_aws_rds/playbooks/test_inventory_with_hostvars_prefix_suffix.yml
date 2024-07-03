@@ -32,6 +32,6 @@
           - "'ansible_diff_mode' in hostvars[instance_id]"
           - "'ansible_forks' in hostvars[instance_id]"
           - "'ansible_version' in hostvars[instance_id]"
-      vars:
+        vars:
         vars_prefix: "{{ inventory_prefix | default('') }}"
         vars_suffix: "{{ inventory_suffix | default('') }}"
