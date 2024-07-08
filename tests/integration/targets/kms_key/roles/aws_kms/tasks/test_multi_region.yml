@@ -5,26 +5,25 @@
     #
     # Get some information about who we are before starting our tests
     # we'll need this as soon as we start working on the policies
+
     - name: get ARN of calling user
       amazon.aws.aws_caller_info:
-      register: aws_caller_info
+
     - name: See whether key exists and its current state
-      kms_key_info:
-        alias: "{{ kms_key_alias }}"
+      amazon.aws.kms_key_info:
+
     - name: create a multi region key - check mode
-      kms_key:
+      register: key_check
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}-check"
         tags:
           Hello: World
         state: present
         multi_region: true
-        enabled: true
-      register: key_check
-      check_mode: true
+
     - name: find facts about the check mode key
-      kms_key_info:
-        alias: "{{ kms_key_alias }}-check"
-      register: check_key
+      amazon.aws.kms_key_info:
+
     - name: ensure that check mode worked as expected
       ansible.builtin.assert:
         that:
@@ -32,15 +31,14 @@
           - key_check is changed
 
     - name: create a multi region key
-      kms_key:
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         tags:
           Hello: World
         state: present
         enabled: true
         multi_region: true
-        enable_key_rotation: false
-      register: key
+
     - name: assert that state is enabled
       ansible.builtin.assert:
         that:
@@ -69,15 +67,15 @@
         timeout: 45
 
     - name: create a key (expect failure)
-      kms_key:
+      register: result
+      ignore_errors: true
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         tags:
           Hello: World
         state: present
         enabled: true
         multi_region: true
-      register: result
-      ignore_errors: true
 
     - ansible.builtin.assert:
         that:
@@ -88,14 +86,14 @@
 
   always:
     # ============================================================
-    #   CLEAN-UP
+
     - name: finish off by deleting keys
-      kms_key:
-        state: absent
-        alias: "{{ item }}"
-        pending_window: 7
       ignore_errors: true
       loop:
         - "{{ kms_key_alias }}"
         - "{{ kms_key_alias }}-diff-spec-usage"
         - "{{ kms_key_alias }}-check"
+      amazon.aws.kms_key:
+        state: absent
+        alias: "{{ item }}"
+        pending_window: 7
