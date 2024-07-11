@@ -7,6 +7,7 @@
       region: "{{ aws_region }}"
   block:
     # ============================================================
+
     - name: create a VPC
       amazon.aws.ec2_vpc_net:
         name: "{{ resource_prefix }}-vpc"
@@ -24,7 +25,6 @@
     - ansible.builtin.set_fact:
         subnet_ipv6_cidr: "{{ vpc_ipv6_cidr | regex_replace('::/.*', '::/64') }}"
 
-    # ============================================================
     - name: check subnet does not exist
       amazon.aws.ec2_vpc_subnet_info:
         filters:
@@ -106,7 +106,6 @@
       vars:
         subnet_info: "{{ vpc_subnet_info.subnets[0] }}"
 
-    # ============================================================
     - name: recreate subnet (expected changed=false) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -141,7 +140,6 @@
           - vpc_subnet_recreate is not changed
           - vpc_subnet_recreate.subnet == vpc_subnet_create.subnet
 
-    # ============================================================
     - name: update subnet so instances launched in it are assigned an IP (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -178,7 +176,6 @@
           - vpc_subnet_modify is changed
           - vpc_subnet_modify.subnet.map_public_ip_on_launch
 
-    # ============================================================
     - name: add invalid ipv6 block to subnet (expected failed)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -198,7 +195,6 @@
           - vpc_subnet_ipv6_failed is failed
           - "'Couldn\\'t associate ipv6 cidr' in vpc_subnet_ipv6_failed.msg"
 
-    # ============================================================
     - name: add a tag (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -251,7 +247,6 @@
           - '"Description" in vpc_subnet_info_by_tag.subnets[0].tags and vpc_subnet_info_by_tag.subnets[0].tags["Description"] == ec2_vpc_subnet_description'
           - '"AnotherTag" in vpc_subnet_info_by_tag.subnets[0].tags and vpc_subnet_info_by_tag.subnets[0].tags["AnotherTag"] == "SomeValue"'
 
-    # ============================================================
     - name: remove tags with default purge_tags=true (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -298,7 +293,6 @@
           - '"Description" not in vpc_subnet_info_removed_tags.subnets[0].tags'
           - '"AnotherTag" in vpc_subnet_info_removed_tags.subnets[0].tags and vpc_subnet_info_removed_tags.subnets[0].tags["AnotherTag"] == "SomeValue"'
 
-    # ============================================================
     - name: change tags with purge_tags=false (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -337,7 +331,6 @@
           - '"Description" in vpc_subnet_change_tags.subnet.tags and vpc_subnet_change_tags.subnet.tags["Description"] == ec2_vpc_subnet_description'
           - '"AnotherTag" in vpc_subnet_change_tags.subnet.tags and vpc_subnet_change_tags.subnet.tags["AnotherTag"] == "SomeValue"'
 
-    # ============================================================
     - name: test state=absent (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -441,7 +434,6 @@
         that:
           - result is changed
 
-    # ============================================================
     - name: create subnet with IPv6 (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -482,7 +474,6 @@
           - '"Description" in vpc_subnet_ipv6_create.subnet.tags and vpc_subnet_ipv6_create.subnet.tags["Description"] == ec2_vpc_subnet_description'
           - vpc_subnet_ipv6_create.subnet.assign_ipv6_address_on_creation
 
-    # ============================================================
     - name: recreate subnet (expected changed=false) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -519,7 +510,6 @@
           - vpc_subnet_ipv6_recreate is not changed
           - vpc_subnet_ipv6_recreate.subnet == vpc_subnet_ipv6_create.subnet
 
-    # ============================================================
     - name: change subnet assign_instances_ipv6 attribute (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -552,7 +542,6 @@
           - vpc_change_attribute is changed
           - not vpc_change_attribute.subnet.assign_ipv6_address_on_creation
 
-    # ============================================================
     - name: add second subnet with duplicate ipv6 cidr (expected failure)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr_b }}"
@@ -569,7 +558,6 @@
           - vpc_add_duplicate_ipv6 is failed
           - "'The IPv6 CIDR \\'{{ subnet_ipv6_cidr }}\\' conflicts with another subnet' in vpc_add_duplicate_ipv6.msg"
 
-    # ============================================================
     - name: remove subnet ipv6 cidr (expected changed=true) (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -599,7 +587,6 @@
           - vpc_remove_ipv6_cidr.subnet.ipv6_cidr_block == ''
           - not vpc_remove_ipv6_cidr.subnet.assign_ipv6_address_on_creation
 
-    # ============================================================
     - name: test adding a tag that looks like a boolean to the subnet (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
@@ -632,7 +619,6 @@
           - vpc_subnet_info is changed
           - vpc_subnet_info.subnet.tags.looks_like_boolean == "True"
 
-    # ============================================================
     - name: test idempotence adding a tag that looks like a boolean (CHECK MODE)
       amazon.aws.ec2_vpc_subnet:
         cidr: "{{ subnet_cidr }}"
