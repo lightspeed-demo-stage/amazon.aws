@@ -28,14 +28,13 @@
           session_token: "{{ security_token | default(omit) }}"
 
     - ansible.builtin.include_role:
-        name: ../setup_sshkey
+
     - ansible.builtin.include_role:
         name: ../setup_ec2_facts
 
     - ansible.builtin.set_fact:
         availability_zone: "{{ ec2_availability_zone_names[0] }}"
 
-    # ============================================================
     - name: create a VPC
       amazon.aws.ec2_vpc_net:
         name: "{{ resource_prefix }}-vpc"
@@ -81,7 +80,8 @@
       register: public_route_table
 
     - name: create a security group
-      ec2_security_group:
+      register: vpc_sg_result
+      amazon.aws.ec2_security_group:
         name: "{{ resource_prefix }}-sg"
         description: Created by {{ resource_prefix }}
         rules:
@@ -94,7 +94,6 @@
             cidr_ip: "0.0.0.0/0"
         state: present
         vpc_id: "{{ vpc_result.vpc.id }}"
-      register: vpc_sg_result
 
     - name: Create a key
       amazon.aws.ec2_key:

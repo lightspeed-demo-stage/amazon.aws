@@ -3,7 +3,7 @@
   block:
     - ansible.builtin.set_fact:
         local_bucket_name: "{{ bucket_name | hash('md5')}}-tags"
-    # ============================================================
+
     - name: Create simple s3_bucket for testing tagging
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
@@ -248,8 +248,8 @@
         that:
           - output.changed
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure all buckets are deleted
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
