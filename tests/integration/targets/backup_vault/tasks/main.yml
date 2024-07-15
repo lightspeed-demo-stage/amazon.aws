@@ -7,12 +7,12 @@
       region: "{{ aws_region }}"
   block:
     - name: create a key
-      kms_key:
+      register: key
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         state: present
         enabled: true
         enable_key_rotation: false
-      register: key
 
     - name: Create an AWS Backup Vault - check mode
       amazon.aws.backup_vault:
@@ -244,7 +244,6 @@
           - updated_tags_idempotency_info.backup_vaults[0].backup_vault_name == updated_tags_info.backup_vaults[0].backup_vault_name
           - updated_tags_idempotency_info.backup_vaults[0].tags == updated_tags_info.backup_vaults[0].tags
 
-  always:
     - name: Delete AWS Backup Vault created during this test
       amazon.aws.backup_vault:
         backup_vault_name: "{{ backup_vault_name }}"
@@ -252,8 +251,8 @@
       ignore_errors: true
 
     - name: finish off by deleting keys
-      kms_key:
+      ignore_errors: true
+      amazon.aws.kms_key:
         state: absent
         alias: "{{ kms_key_alias }}"
         pending_window: 7
-      ignore_errors: true
