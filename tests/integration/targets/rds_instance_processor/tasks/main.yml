@@ -110,7 +110,6 @@
         apply_immediately: true
       register: result
 
-    # Check if processor features either are pending or already changed
     - ansible.builtin.assert:
         that:
           - not result.changed
@@ -120,7 +119,6 @@
             modified_processor_features.threadsPerCore }}") or (result.processor_features.threadsPerCore is defined and result.processor_features.threadsPerCore ==
             "{{ modified_processor_features.threadsPerCore }}")
 
-  always:
     - name: Delete the DB instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"

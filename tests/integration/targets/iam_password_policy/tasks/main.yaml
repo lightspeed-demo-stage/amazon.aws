@@ -65,7 +65,6 @@
         that:
           - result.changed
 
-    # Test for regression of #59102
     - name: update iam password policy without expiry
       community.aws.iam_password_policy:
         state: present
@@ -101,7 +100,7 @@
       ansible.builtin.assert:
         that:
           - not result.changed
-  always:
+
     - name: remove iam password policy
       community.aws.iam_password_policy:
         state: absent
