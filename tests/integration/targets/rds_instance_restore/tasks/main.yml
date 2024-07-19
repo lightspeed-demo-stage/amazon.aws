@@ -10,7 +10,6 @@
       region: "{{ aws_region }}"
   block:
     # TODO: snapshot, s3
-
     - name: Ensure the resource doesn't exist
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
@@ -113,7 +112,6 @@
           - not result.changed
           - result.db_instance_identifier == '{{ instance_id }}'
 
-  always:
     - name: Remove the DB instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}-s"
