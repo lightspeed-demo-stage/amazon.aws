@@ -6,4 +6,3 @@
     - name: write inventory config file
       ansible.builtin.copy:
         dest: ../test.aws_rds.yml
-        content: ""

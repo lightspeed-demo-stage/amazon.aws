@@ -19,7 +19,6 @@
       ansible.builtin.set_fact:
         priv_key_file_name: "{{ _tmpdir.path }}/aws_ssh_rsa"
 
-    # ============================================================
     - name: test with no parameters
       amazon.aws.ec2_key:
       register: result
@@ -31,7 +30,6 @@
           - result.failed
           - 'result.msg == "missing required arguments: name"'
 
-    # ============================================================
     - name: test removing a non-existent key pair (check mode)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -57,7 +55,7 @@
 
     # ============================================================
     # Test: create new key by AWS (key_material not provided)
-    # ============================================================
+
     - name: test creating a new key pair (check_mode)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -284,7 +282,6 @@
         that:
           - result is not changed
 
-    # ============================================================
     - name: test updating tags without purge (check mode)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -394,7 +391,6 @@
           - '"newKey" in result.key.tags'
           - result.key.tags['newKey'] == 'Another value'
 
-    # ============================================================
     - name: test updating tags with purge (check mode)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -479,7 +475,6 @@
           - '"newKey" in result.key.tags'
           - result.key.tags['newKey'] == 'Another value'
 
-    # ============================================================
     - name: test removing an existent key (check mode)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -519,7 +514,6 @@
       register: keys
       failed_when: keys.keypairs | length > 0
 
-    # ============================================================
     - name: test state=present with key_material
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -555,7 +549,7 @@
           - '"tags" in key_info.keypairs[0]'
           - key_info.keypairs[0].key_name == "{{ec2_key_name}}"
           - key_info.keypairs[0].key_fingerprint == "{{fingerprint}}"
-    # ============================================================
+
     - name: test state=present with key_material (idempotency)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -606,7 +600,6 @@
           - result.changed
           - result.key.fingerprint != fingerprint
 
-    # ============================================================
     - name: test state=absent (expect changed=true)
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -620,7 +613,6 @@
           - '"key" in result'
           - result.key == None
 
-    # ============================================================
     - name: test create ED25519 key pair type
       amazon.aws.ec2_key:
         name: "{{ ec2_key_name }}"
@@ -646,7 +638,6 @@
           - result.key.type == "rsa"
 
   always:
-    # ============================================================
     - name: Always delete the key we might create
       amazon.aws.ec2_key:
         name: "{{ item }}"
