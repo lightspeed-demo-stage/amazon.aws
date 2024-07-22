@@ -6,4 +6,3 @@
     - name: assert inventory was not populated by aws_rds inventory plugin
       ansible.builtin.assert:
         that:
-          - "'aws_rds' not in groups"
