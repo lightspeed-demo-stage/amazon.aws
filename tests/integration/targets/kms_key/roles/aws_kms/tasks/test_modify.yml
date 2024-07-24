@@ -5,25 +5,25 @@
     #
     # Get some information about who we are before starting our tests
     # we'll need this as soon as we start working on the policies
+
     - name: get ARN of calling user
       amazon.aws.aws_caller_info:
-      register: aws_caller_info
+
     - name: create an IAM role that can do nothing
       community.aws.iam_role:
         name: "{{ kms_key_alias }}"
         state: present
         assume_role_policy_document: '{"Version": "2012-10-17", "Statement": {"Action": "sts:AssumeRole", "Principal": {"Service": "ec2.amazonaws.com"}, "Effect":
           "Deny"} }'
-      register: iam_role_result
+
     - name: create a key
-      kms_key:
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         tags:
           Hello: World
         state: present
         enabled: true
-        enable_key_rotation: false
-      register: key
+
     - name: assert that state is enabled
       ansible.builtin.assert:
         that:
@@ -46,16 +46,13 @@
           - key.key_policies[0].Id == 'key-default-1'
           - key.description == ''
 
-    # ------------------------------------------------------------------------------------------
-
     - name: Save IDs for later
       ansible.builtin.set_fact:
         kms_key_id: "{{ key.key_id }}"
-        kms_key_arn: "{{ key.key_arn }}"
+
     - name: find facts about the key (by ID)
-      kms_key_info:
-        key_id: "{{ kms_key_id }}"
-      register: new_key
+      amazon.aws.kms_key_info:
+
     - name: check that a key was found
       ansible.builtin.assert:
         that:
@@ -78,20 +75,18 @@
           - new_key.kms_keys[0].description == ''
 
     - name: Update policy - check mode
-      kms_key:
-        key_id: "{{ kms_key_id }}"
-        policy: "{{ lookup('template', 'console-policy.j2') }}"
       register: key
-      check_mode: true
+      amazon.aws.kms_key:
+        key_id: "{{ kms_key_id }}"
+
     - ansible.builtin.assert:
         that:
           - key is changed
 
     - name: Update policy
-      kms_key:
+      amazon.aws.kms_key:
         key_id: "{{ kms_key_id }}"
-        policy: "{{ lookup('template', 'console-policy.j2') }}"
-      register: key
+
     - name: Policy should have been changed
       ansible.builtin.assert:
         that:
@@ -116,22 +111,20 @@
 
     - name: Sleep to wait for updates to propagate
       ansible.builtin.wait_for:
-        timeout: 45
+
     - name: Update policy (idempotence) - check mode
-      kms_key:
-        alias: alias/{{ kms_key_alias }}
-        policy: "{{ lookup('template', 'console-policy.j2') }}"
       register: key
-      check_mode: true
+      amazon.aws.kms_key:
+        alias: alias/{{ kms_key_alias }}
+
     - ansible.builtin.assert:
         that:
           - not key.changed
 
     - name: Update policy (idempotence)
-      kms_key:
+      amazon.aws.kms_key:
         alias: alias/{{ kms_key_alias }}
-        policy: "{{ lookup('template', 'console-policy.j2') }}"
-      register: key
+
     - ansible.builtin.assert:
         that:
           - not key.changed
@@ -153,25 +146,21 @@
           - key.key_policies[0].Id == 'key-consolepolicy-3'
           - key.description == ''
 
-    # ------------------------------------------------------------------------------------------
-
     - name: Update description - check mode
-      kms_key:
+      register: key
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         state: present
-        description: test key for testing
-      register: key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - key.changed
 
     - name: Update description
-      kms_key:
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         state: present
-        description: test key for testing
-      register: key
+
     - ansible.builtin.assert:
         that:
           - key.changed
@@ -195,24 +184,22 @@
 
     - name: Sleep to wait for updates to propagate
       ansible.builtin.wait_for:
-        timeout: 45
+
     - name: Update description (idempotence) - check mode
-      kms_key:
+      register: key
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         state: present
-        description: test key for testing
-      register: key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - not key.changed
 
     - name: Update description (idempotence)
-      kms_key:
+      amazon.aws.kms_key:
         alias: "{{ kms_key_alias }}"
         state: present
-        description: test key for testing
-      register: key
+
     - ansible.builtin.assert:
         that:
           - not key.changed
@@ -234,13 +221,10 @@
           - key.key_policies[0].Id == 'key-consolepolicy-3'
           - key.description == 'test key for testing'
 
-    # ------------------------------------------------------------------------------------------
-
     - name: update policy to remove access to key rotation status
-      kms_key:
+      amazon.aws.kms_key:
         alias: alias/{{ kms_key_alias }}
-        policy: "{{ lookup('template', 'console-policy-no-key-rotation.j2') }}"
-      register: key
+
     - ansible.builtin.assert:
         that:
           - '"key_id" in key'
@@ -264,13 +248,12 @@
 
   always:
     # ============================================================
-    #   CLEAN-UP
+
     - name: finish off by deleting keys
-      kms_key:
+      amazon.aws.kms_key:
         state: absent
         alias: "{{ kms_key_alias }}"
-        pending_window: 7
-      ignore_errors: true
+
     - name: remove the IAM role
       community.aws.iam_role:
         name: "{{ kms_key_alias }}"

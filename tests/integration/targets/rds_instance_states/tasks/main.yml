@@ -110,7 +110,6 @@
           - result.deletion_protection == True
 
     # ------------------------------------------------------------------------------------------
-    # Test stopping / rebooting instances
 
     - name: Reboot a stopped instance - check_mode
       amazon.aws.rds_instance:
@@ -311,7 +310,6 @@
         that:
           - not result.changed
 
-  always:
     - name: Remove DB instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
