@@ -20,8 +20,6 @@
       region: "{{ aws_region }}"
 
   tasks:
-    - name: refresh inventory to populate cache
-      ansible.builtin.meta: refresh_inventory
     - name: assert group was populated with inventory but is empty
       ansible.builtin.assert:
         that:
@@ -31,4 +29,3 @@
     - name: Delete RDS instance
       ansible.builtin.include_tasks: tasks/rds_instance_delete.yml
       vars:
-        aws_api_wait: true

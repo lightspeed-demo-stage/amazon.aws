@@ -12,8 +12,6 @@
           region: "{{ aws_region }}"
       block:
         # Create VPC, subnet, security group, and find image_id to create instance
-
-        - ansible.builtin.include_tasks: tasks/setup.yml
         - name: create a new host
           amazon.aws.ec2_instance:
             image_id: "{{ image_id }}"
@@ -25,9 +23,7 @@
             security_groups: "{{ sg_id }}"
             vpc_subnet_id: "{{ subnet_id }}"
             wait: false
-          register: setup_instance_1
 
-        - ansible.builtin.meta: refresh_inventory
         - name: assert the hostvars are defined with prefix and/or suffix
           ansible.builtin.assert:
             that:
@@ -41,6 +37,6 @@
               - "'ansible_diff_mode' in hostvars['{{ resource_prefix }}_1']"
               - "'ansible_forks' in hostvars['{{ resource_prefix }}_1']"
               - "'ansible_version' in hostvars['{{ resource_prefix }}_1']"
-          vars:
+            vars:
             vars_prefix: "{{ hostvars_prefix | default('') }}"
             vars_suffix: "{{ hostvars_suffix | default('') }}"

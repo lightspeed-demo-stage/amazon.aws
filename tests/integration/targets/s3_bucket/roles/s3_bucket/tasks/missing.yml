@@ -7,7 +7,7 @@
     #
     # While in theory the 'simple' test case covers this there are
     # ways in which eventual-consistency could catch us out.
-    #
+
     - name: Delete non-existstent s3_bucket (never created)
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
@@ -19,8 +19,8 @@
           - output is success
           - output is not changed
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure all buckets are deleted
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"

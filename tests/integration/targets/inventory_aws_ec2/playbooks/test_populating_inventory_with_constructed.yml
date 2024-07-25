@@ -12,8 +12,6 @@
           region: "{{ aws_region }}"
       block:
         # Create VPC, subnet, security group, and find image_id to create instance
-
-        - ansible.builtin.include_tasks: tasks/setup.yml
         - name: create a new host
           amazon.aws.ec2_instance:
             image_id: "{{ image_id }}"
@@ -26,16 +24,12 @@
             security_groups: "{{ sg_id }}"
             vpc_subnet_id: "{{ subnet_id }}"
             wait: false
-          register: setup_instance
 
-        - ansible.builtin.meta: refresh_inventory
         - name: register the keyed sg group name
           ansible.builtin.set_fact:
-            sg_group_name: security_groups_{{ sg_id | replace('-', '_') }}
 
         - name: register one of the keyed tag groups name
           ansible.builtin.set_fact:
-            tag_group_name: tag_Name_{{ resource_prefix | replace('-', '_') }}
 
         - name: assert the keyed groups and groups from constructed config were added to inventory and composite var added to hostvars
           ansible.builtin.assert:
