@@ -33,7 +33,7 @@
           foo: foo
           bar: baz
           baz: also baz
-      register: result
+
     - name: List the new tags on the volume
       amazon.aws.ec2_tag_info:
         resource: "{{ volume.volume_id }}"
@@ -125,7 +125,6 @@
           - result is changed
           - result.tags | length == 0
 
-  always:
     - name: Remove the volume
       amazon.aws.ec2_vol:
         id: "{{ volume.volume_id }}"

@@ -16,6 +16,7 @@
   block:
   # DHCP option set can be attached to multiple VPCs, we don't want to use any that
   # don't belong to this test run
+
     - name: find all DHCP option sets that already exist before running tests
       amazon.aws.ec2_vpc_dhcp_option_info:
       register: result
@@ -39,7 +40,6 @@
         vpc_id: "{{ vpc.vpc.id }}"
         default_options_id: "{{ vpc.vpc.dhcp_options_id }}"
 
-    ## ============================================
     - name: Option Sets can be attached to multiple VPCs, create a new one if the test VPC is reusing a pre-existing one
       when: vpc.vpc.dhcp_options_id in preexisting_option_sets
       block:
@@ -93,7 +93,7 @@
     ## ============================================
 
     # FIXME: always reassociated to lowest alphanum dhcp_options_id when vpc_id is provided without options,
-    # This task will return an unpredictable dhcp_option_id so we can't assert anything about the option's values
+
     - name: test a DHCP option exists (check mode)
       amazon.aws.ec2_vpc_dhcp_option:
         state: present
@@ -110,7 +110,6 @@
         that:
           - not found_dhcp_options.changed
 
-    # FIXME: always reassociated when vpc_id is provided without options, so here we provide the default options
     - name: test a DHCP option exists
       amazon.aws.ec2_vpc_dhcp_option:
         state: present
@@ -128,7 +127,6 @@
           - found_dhcp_options.dhcp_options_id is defined
           - original_dhcp_options_id == found_dhcp_options.dhcp_options_id
 
-    # Create a DHCP option set that inherits from the default set and does not delete the old set
     - name: create a DHCP option set that inherits from the default set (check mode)
       amazon.aws.ec2_vpc_dhcp_option:
         state: present
@@ -211,7 +209,6 @@
           - new_dhcp_options.dhcp_config[0]['domain-name'] == ['{{ aws_domain_name }}']
           - new_dhcp_options.dhcp_config[0]['domain-name-servers'] == ['AmazonProvidedDNS']
 
-    # FIXME: no way to associate `default` in the module
     - name: Re-associate the default DHCP options set so that the new one can be deleted
       amazon.aws.ec2_vpc_dhcp_option:
         vpc_id: "{{ vpc_id }}"
@@ -313,7 +310,6 @@
         dhcp_options_id: "{{ new_dhcp_options_id }}"
         state: absent
 
-    # Create a DHCP option set that inherits from the default set overwrites a default and deletes the old set
     - name: create a DHCP option set that inherits from the default set and deletes the original set (check mode)
       amazon.aws.ec2_vpc_dhcp_option:
         state: present
@@ -862,7 +858,6 @@
     #      that:
     #        - dhcp_options.changed
 
-    # FIXME: does nothing - the module should associate "default" with the VPC provided but currently does not
     - name: removing the DHCP option set
       amazon.aws.ec2_vpc_dhcp_option:
         state: absent
@@ -897,7 +892,6 @@
         that:
           - not dhcp_options.changed
 
-  always:
     - name: Re-associate the default DHCP options set so that the new one(s) can be deleted
       amazon.aws.ec2_vpc_dhcp_option:
         vpc_id: "{{ vpc_id }}"
