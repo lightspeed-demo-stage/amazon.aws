@@ -48,8 +48,6 @@
           - source_db.changed
           - source_db.db_instance_identifier == '{{ instance_id }}'
 
-    # ------------------------------------------------------------------------------------------
-
     - name: Create a read replica in a different region - check_mode
       amazon.aws.rds_instance:
         id: "{{ instance_id }}-replica"
@@ -213,7 +211,6 @@
         that:
           - not result.changed
 
-  always:
     - name: Remove the DB instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
