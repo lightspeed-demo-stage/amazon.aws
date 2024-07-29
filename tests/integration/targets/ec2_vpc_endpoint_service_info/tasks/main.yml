@@ -11,9 +11,9 @@
     - community.aws
   block:
     - name: List all available services (Check Mode)
-      ec2_vpc_endpoint_service_info:
       check_mode: true
       register: services_check
+      amazon.aws.ec2_vpc_endpoint_service_info:
 
     - name: Verify services (Check Mode)
       vars:
@@ -38,8 +38,8 @@
           - '"vpc_endpoint_policy_supported" in first_service'
 
     - name: List all available services
-      ec2_vpc_endpoint_service_info:
       register: services_info
+      amazon.aws.ec2_vpc_endpoint_service_info:
 
     - name: Verify services
       vars:
@@ -64,9 +64,9 @@
           - '"vpc_endpoint_policy_supported" in first_service'
 
     - name: Limit services by name
-      ec2_vpc_endpoint_service_info:
-        service_names: "{{ search_service_names }}"
       register: services_info
+      amazon.aws.ec2_vpc_endpoint_service_info:
+        service_names: "{{ search_service_names }}"
 
     - name: Verify services
       vars:
