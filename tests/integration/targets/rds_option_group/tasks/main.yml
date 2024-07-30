@@ -873,7 +873,6 @@
         that:
           - deleted_rds_mysql_option_group.changed
 
-  always:
     - name: Delete an RDS Mysql option group
       amazon.aws.rds_option_group:
         state: absent
