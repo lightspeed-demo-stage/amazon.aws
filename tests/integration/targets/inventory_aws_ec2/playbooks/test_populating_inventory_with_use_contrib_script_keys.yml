@@ -12,7 +12,6 @@
           region: "{{ aws_region }}"
       block:
         # Create VPC, subnet, security group, and find image_id to create instance
-        - ansible.builtin.include_tasks: tasks/setup.yml
         - name: create a new host
           amazon.aws.ec2_instance:
             image_id: "{{ image_id }}"
@@ -23,12 +22,9 @@
             security_groups: "{{ sg_id }}"
             vpc_subnet_id: "{{ subnet_id }}"
             wait: false
-          register: setup_instance
 
-        - ansible.builtin.meta: refresh_inventory
         - name: "register the current hostname, the : and / a replaced with _"
           ansible.builtin.set_fact:
-            expected_hostname: "{{ resource_prefix }}__aa"
 
         - name: Ensure we've got a hostvars entry for the new host
           ansible.builtin.assert:

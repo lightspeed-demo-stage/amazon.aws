@@ -72,7 +72,6 @@
           - global_cluster_info.global_clusters[0].global_cluster_members[1].db_cluster_arn == secondary_cluster_info_result.clusters[0].db_cluster_arn
           - global_cluster_info.global_clusters[0].engine == engine
 
-  always:
     - name: Delete secondary cluster without creating a final snapshot
       amazon.aws.rds_cluster:
         cluster_id: "{{ secondary_cluster_id }}"
