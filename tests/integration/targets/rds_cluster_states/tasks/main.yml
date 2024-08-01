@@ -8,15 +8,16 @@
   block:
     # ------------------------------------------------------------------------------------------
     # Create DB cluster
+
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         engine: "{{ engine}}"
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -24,14 +25,14 @@
       ignore_errors: true
 
     - name: Create an Aurora-PostgreSQL DB cluster
-      rds_cluster:
+      register: _result_create_source_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         engine: aurora-postgresql
         engine_mode: provisioned
         username: "{{ username }}"
         password: "{{ password }}"
-      register: _result_create_source_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -58,8 +59,6 @@
           - "'tags' in _result_create_source_db_cluster"
           - "'vpc_security_groups' in _result_create_source_db_cluster"
 
-    # ------------------------------------------------------------------------------------------
-    # Test stopping db clusters
     - name: Stop db clusters - checkmode
       amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}"
@@ -110,8 +109,6 @@
         that:
           - not stopped_cluster_idem.changed
 
-    # ------------------------------------------------------------------------------------------
-    # Test starting DB clusters
     - name: Start db clusters - checkmode
       amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}"
@@ -154,17 +151,15 @@
         that:
           - not started_cluster.changed
 
-    # ------------------------------------------------------------------------------------------
-    # Give errors for MySql DB cluster
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_mysql_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ mysql_cluster_id }}"
         state: absent
         engine: "{{ mysql_engine }}"
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_mysql_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -172,7 +167,9 @@
       ignore_errors: true
 
     - name: Create an MySql DB cluster
-      rds_cluster:
+      ignore_errors: true
+      register: mysql_cluster
+      amazon.aws.rds_cluster:
         id: "{{ mysql_cluster_id }}"
         state: present
         engine: "{{ mysql_engine }}"
@@ -182,8 +179,6 @@
         db_cluster_instance_class: "{{ mysql_db_cluster_instance_class }}"
         username: "{{ username }}"
         password: "{{ password }}"
-      ignore_errors: true
-      register: mysql_cluster
 
     - ansible.builtin.assert:
         that:
@@ -223,18 +218,16 @@
           - mysql_cluster.msg == "Only aurora clusters can use the state stopped"
 
   always:
-    # ------------------------------------------------------------------------------------------
-    # Cleanup starts here
     - name: Delete MySql db cluster without creating a final snapshot
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ mysql_cluster_id }}"
         skip_final_snapshot: true
-      ignore_errors: true
 
     - name: Delete Aurora-PostgreSql db cluster without creating a final snapshot
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ cluster_id }}"
         skip_final_snapshot: true
-      ignore_errors: true
