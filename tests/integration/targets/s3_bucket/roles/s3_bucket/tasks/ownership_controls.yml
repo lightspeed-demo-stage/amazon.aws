@@ -127,8 +127,8 @@
           - not idempotency.changed
           - not idempotency.object_ownership|bool
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: delete s3 bucket ownership controls
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"

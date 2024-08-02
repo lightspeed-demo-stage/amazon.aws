@@ -11,6 +11,7 @@
   block:
   # ==============================================================
   # Preparation
+
     - name: create minimal lambda role
       community.aws.iam_role:
         name: "{{ lambda_role_name }}"
@@ -18,16 +19,16 @@
         create_instance_profile: false
         managed_policies:
           - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
-      register: iam_role
+
     - name: wait 10 seconds for role to become available
       ansible.builtin.pause:
         seconds: 10
-      when: iam_role.changed
+
     - name: move lambda into place for archive module
       ansible.builtin.copy:
         src: mini_lambda.py
         dest: "{{ output_dir }}/mini_lambda.py"
-        mode: preserve
+
     - name: bundle lambda into a zip
       register: zip_res
       community.general.archive:
@@ -42,7 +43,7 @@
         handler: mini_lambda.handler
         role: "{{ lambda_role_name }}"
         zip_file: "{{ zip_res.dest }}"
-      register: lambda_a
+
     - name: assert lambda upload succeeded
       ansible.builtin.assert:
         that:
@@ -54,7 +55,7 @@
         runtime: python3.8
         handler: mini_lambda.handler
         role: "{{ lambda_role_name }}"
-      register: lambda_b
+
     - name: assert that update succeeded
       ansible.builtin.assert:
         that:
@@ -66,7 +67,7 @@
         runtime: python3.9
         handler: mini_lambda.handler
         role: "{{ lambda_role_name }}"
-      register: lambda_c
+
     - name: assert that update succeeded
       ansible.builtin.assert:
         that:
@@ -79,14 +80,14 @@
         lambda_arn: '{{ ":".join(_full_arn.split(":")[:-1]) }}'
 
     # ==============================================================
-    # Creation of an alias
+
     - name: Create an alias (check mode)
       amazon.aws.lambda_alias:
         state: present
         function_name: "{{ lambda_function_name }}"
         name: Testing
       check_mode: true
-      register: create_alias
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -97,7 +98,7 @@
         state: present
         function_name: "{{ lambda_function_name }}"
         name: Testing
-      register: create_alias
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -121,7 +122,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
       check_mode: true
-      register: create_alias
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -132,7 +133,7 @@
         state: present
         function_name: "{{ lambda_function_name }}"
         name: Testing
-      register: create_alias
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -151,7 +152,7 @@
     # It will change any time the alias is updated
 
     # ==============================================================
-    # Update description of an alias when none set to start
+
     - name: Update an alias description (check mode)
       amazon.aws.lambda_alias:
         state: present
@@ -159,7 +160,7 @@
         name: Testing
         description: Description 1
       check_mode: true
-      register: update_alias_description
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -171,7 +172,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         description: Description 1
-      register: update_alias_description
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -196,7 +197,7 @@
         name: Testing
         description: Description 1
       check_mode: true
-      register: update_alias_description
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -208,7 +209,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         description: Description 1
-      register: update_alias_description
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -227,7 +228,7 @@
     # It will change any time the alias is updated
 
     # ==============================================================
-    # Update description of an alias when one set to start
+
     - name: Update an alias description again (check mode)
       amazon.aws.lambda_alias:
         state: present
@@ -235,7 +236,7 @@
         name: Testing
         description: description 2
       check_mode: true
-      register: update_alias_description
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -247,7 +248,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         description: description 2
-      register: update_alias_description
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -266,7 +267,7 @@
     # It will change any time the alias is updated
 
     # ==============================================================
-    # Update version of an alias
+
     - name: Update an alias version (check mode)
       amazon.aws.lambda_alias:
         state: present
@@ -274,7 +275,7 @@
         name: Testing
         function_version: 1
       check_mode: true
-      register: update_alias_version
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -286,7 +287,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         function_version: 1
-      register: update_alias_version
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -311,7 +312,7 @@
         name: Testing
         function_version: 1
       check_mode: true
-      register: update_alias_version
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -323,7 +324,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         function_version: 1
-      register: update_alias_version
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -349,7 +350,7 @@
       # docs state that when not defined defaults to LATEST
       #function_version: 1
       check_mode: true
-      register: update_alias_version
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -360,9 +361,9 @@
         state: present
         function_name: "{{ lambda_function_name }}"
         name: Testing
-      # docs state that when not defined defaults to LATEST
-      #function_version: 1
-      register: update_alias_version
+    # docs state that when not defined defaults to LATEST
+    #function_version: 1
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -425,6 +426,7 @@
         name: Testing
         function_version: 0
       register: update_alias_version
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -461,7 +463,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
         function_version: 0
-      register: update_alias_version
+
     - name: Check changed and returned values
       ansible.builtin.assert:
         that:
@@ -542,6 +544,7 @@
         name: stable
         function_version: 1
       register: create_alias
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -560,7 +563,7 @@
     # It will change any time the alias is updated
 
     # ==============================================================
-    # Deletion of an alias
+
     - name: Delete an alias (check mode)
       amazon.aws.lambda_alias:
         state: absent
@@ -568,6 +571,7 @@
         name: Testing
       check_mode: true
       register: delete_alias
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -579,6 +583,7 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
       register: delete_alias
+
     - name: Check changed
       ansible.builtin.assert:
         that:
@@ -591,6 +596,7 @@
         name: Testing
       check_mode: true
       register: delete_alias
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
@@ -602,19 +608,20 @@
         function_name: "{{ lambda_function_name }}"
         name: Testing
       register: delete_alias
+
     - name: Check not changed
       ansible.builtin.assert:
         that:
           - delete_alias is not changed
 
-  # ==============================================================
-  # Cleanup
-  always:
+    # ==============================================================
+    # Cleanup
+
     - name: ensure function is absent at end of test
       amazon.aws.lambda:
         name: "{{lambda_function_name}}"
         state: absent
-      ignore_errors: true
+
     - name: ensure role has been removed at end of test
       community.aws.iam_role:
         name: "{{ lambda_role_name }}"
