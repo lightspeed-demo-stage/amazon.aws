@@ -10,7 +10,6 @@
       region: "{{ aws_region }}"
   block:
     # ============================================================
-
     - name: Create VPC for use in testing
       amazon.aws.ec2_vpc_net:
         name: "{{ resource_prefix }}-vpc"
@@ -20,7 +19,6 @@
         tenancy: default
       register: testing_vpc
 
-    # ============================================================
     - name: Create a public zone
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.public"
@@ -40,7 +38,6 @@
           - output.tags.another_tag == '{{ resource_prefix }} again'
           - not output.private_zone
 
-    # ============================================================
     - name: Create a public zone (CHECK MODE)
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.check.public"
@@ -61,7 +58,6 @@
           - output.tags.another_tag == '{{ resource_prefix }} again'
           - not output.private_zone
 
-    # ============================================================
     - name: Do an idemptotent update of a public zone
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.public"
@@ -101,7 +97,6 @@
           - output.tags.another_tag == '{{ resource_prefix }} again'
           - not output.private_zone
 
-    # ============================================================
     - name: Modify tags on a public zone
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.public"
@@ -118,7 +113,6 @@
           - "'TestTag' not in output.tags"
           - output.tags.AnotherTag == '{{ resource_prefix }}.anothertag'
 
-    # ============================================================
     - name: Update comment and remove tags of a public zone
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.public"
@@ -150,7 +144,6 @@
           - output.result.comment == "updated comment for check"
           - not output.tags
 
-    # ============================================================
     - name: Delete public zone (CHECK MODE)
       amazon.aws.route53_zone:
         zone: "{{ resource_prefix }}.public"
@@ -580,8 +573,8 @@
           - output.changed
           - "'Successfully deleted' in output.result"
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure public zone is deleted
       amazon.aws.route53_zone:
         zone: "{{ item }}"
