@@ -117,7 +117,6 @@
           - not result.changed
           - '"engine_version" in result.pending_modified_values or result.engine_version == mariadb_engine_version_2'
 
-  always:
     - name: Delete the instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
