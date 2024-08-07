@@ -199,7 +199,6 @@
         that:
           - confirm_terminatedinstance_fact.instances[0].state.name == "terminated"
 
-  always:
     - name: Terminate checkmode instances
       amazon.aws.ec2_instance:
         state: absent
