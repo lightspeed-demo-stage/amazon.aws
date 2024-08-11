@@ -17,7 +17,8 @@
       register: result
 
     - name: Create minimal aurora cluster in default VPC and default subnet group
-      rds_cluster:
+      register: my_cluster
+      amazon.aws.rds_cluster:
         state: present
         engine: aurora-postgresql
         engine_mode: provisioned
@@ -26,7 +27,6 @@
         password: "{{ password }}"
         tags:
           CreatedBy: rds_instance integration tests
-      register: my_cluster
 
     - ansible.builtin.assert:
         that:
@@ -98,7 +98,6 @@
           - "'Modify database endpoint port number for the DB Cluster using the ModifyDbCluster API' in result.msg"
           - "'Please see rds_cluster' in result.msg"
 
-  always:
     - name: Delete the instance
       amazon.aws.rds_instance:
         id: "{{ item }}"
@@ -111,9 +110,9 @@
       ignore_errors: true
 
     - name: Delete the cluster
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}"
         state: absent
         skip_final_snapshot: true
         wait: false
-      ignore_errors: true
