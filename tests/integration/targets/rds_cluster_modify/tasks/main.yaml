@@ -10,16 +10,15 @@
   # Tests have been ran, tested, and verified locally on us-west-2 (primary), eu-north-1 (replica)
   # - name: Run tests for testing remove cluster from global db
   #   import_tasks: remove_from_global_db.yaml
-
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         engine: "{{ engine}}"
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -28,16 +27,16 @@
 
     # Follow up to Aurora Serverless V2 release, we use an aurora-mysql to
     # avoid the following error when we try to adjust the port:
-    # You currently can't modify EndpointPort with Aurora Serverless.
+
     - name: Create an Aurora-MySQL DB cluster
-      rds_cluster:
+      register: _result_create_source_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         engine: aurora-mysql
         engine_mode: provisioned
         username: "{{ username }}"
         password: "{{ password }}"
-      register: _result_create_source_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -67,13 +66,13 @@
           - "'vpc_security_groups' in _result_create_source_db_cluster"
 
     - name: Modify DB cluster password
-      rds_cluster:
+      register: _result_modify_password
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         password: "{{ new_password }}"
         force_update_password: true
         apply_immediately: true
-      register: _result_modify_password
 
     - ansible.builtin.assert:
         that:
@@ -102,11 +101,11 @@
           - "'vpc_security_groups' in _result_modify_password"
 
     - name: Modify DB cluster port
-      rds_cluster:
+      register: _result_modify_port
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         port: "{{ new_port }}"
-      register: _result_modify_port
 
     - ansible.builtin.assert:
         that:
@@ -135,13 +134,13 @@
           - "'vpc_security_groups' in _result_modify_port"
 
     - name: Modify DB cluster identifier
-      rds_cluster:
+      register: _result_modify_id
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: present
         purge_tags: false
         new_cluster_id: "{{ new_cluster_id }}"
         apply_immediately: true
-      register: _result_modify_id
 
     - ansible.builtin.assert:
         that:
@@ -192,12 +191,12 @@
       when: _result_check_db_parameter_group.rc != 0
 
     - name: Modify DB cluster parameter group
-      rds_cluster:
+      register: _result_modify_db_parameter_group_name
+      amazon.aws.rds_cluster:
         id: "{{ new_cluster_id }}"
         state: present
         db_cluster_parameter_group_name: "{{ new_db_parameter_group_name }}"
         apply_immediately: true
-      register: _result_modify_db_parameter_group_name
 
     - ansible.builtin.assert:
         that:
@@ -226,46 +225,45 @@
           - "'vpc_security_groups' in _result_modify_db_parameter_group_name"
 
     - name: Delete DB cluster without creating a final snapshot (CHECK MODE)
-      rds_cluster:
+      register: _result_delete_cluster
+      check_mode: true
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ new_cluster_id }}"
         skip_final_snapshot: true
-      register: _result_delete_cluster
-      check_mode: true
 
     - ansible.builtin.assert:
         that:
           - _result_delete_cluster.changed
 
     - name: Delete DB cluster without creating a final snapshot
-      rds_cluster:
+      register: _result_delete_cluster
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ new_cluster_id }}"
         skip_final_snapshot: true
-      register: _result_delete_cluster
 
     - ansible.builtin.assert:
         that:
           - _result_delete_cluster.changed
 
     - name: Delete DB cluster without creating a final snapshot (idempotence)
-      rds_cluster:
+      register: _result_delete_cluster
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ new_cluster_id }}"
         skip_final_snapshot: true
-      register: _result_delete_cluster
 
     - ansible.builtin.assert:
         that:
           - not _result_delete_cluster.changed
 
-  always:
     - name: Delete DB cluster without creating a final snapshot
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         state: absent
         cluster_id: "{{ cluster_id }}"
         skip_final_snapshot: true
-      ignore_errors: true
 
     - name: Delete cluster parameter group
       ansible.builtin.command: aws rds delete-db-cluster-parameter-group --db-cluster-parameter-group-name {{ new_db_parameter_group_name }}
