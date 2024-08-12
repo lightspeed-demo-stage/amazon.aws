@@ -15,11 +15,12 @@
   # We create an IAM user with no attached permissions.  The *only* thing the
   # user will be able to do is call sts.get_caller_identity
   # https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html
+
     - name: Create test user
       amazon.aws.iam_user:
         name: "{{ test_user }}"
         state: present
-      register: iam_user
+
     - ansible.builtin.assert:
         that:
           - iam_user is successful
@@ -28,9 +29,8 @@
     # ==================================================================================
 
     - name: Fetch IAM key info (no keys)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -40,22 +40,20 @@
     # ==================================================================================
 
     - name: Create a key (check_mode)
-      iam_access_key:
-        user_name: "{{ test_user }}"
-        state: present
       register: create_key_1
-      check_mode: true
+      community.aws.iam_access_key:
+        user_name: "{{ test_user }}"
+
     - ansible.builtin.assert:
         that:
           - create_key_1 is successful
           - create_key_1 is changed
 
     - name: Create a key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
-        no_log: true
-      register: create_key_1
+
     - ansible.builtin.assert:
         that:
           - create_key_1 is successful
@@ -71,9 +69,8 @@
           - create_key_1.access_key.status == 'Active'
 
     - name: Fetch IAM key info (1 key)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -88,24 +85,22 @@
           - access_key_1.create_date == create_key_1.access_key.create_date
           - access_key_1.status == 'Active'
       vars:
-        access_key_1: "{{ access_key_info.access_keys[0] }}"
+
     - name: Create a second key (check_mode)
-      iam_access_key:
-        user_name: "{{ test_user }}"
-        state: present
       register: create_key_2
-      check_mode: true
+      community.aws.iam_access_key:
+        user_name: "{{ test_user }}"
+
     - ansible.builtin.assert:
         that:
           - create_key_2 is successful
           - create_key_2 is changed
 
     - name: Create a second key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
-        no_log: true
-      register: create_key_2
+
     - ansible.builtin.assert:
         that:
           - create_key_2 is successful
@@ -121,9 +116,8 @@
           - create_key_2.access_key.status == 'Active'
 
     - name: Fetch IAM key info (2 keys)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -147,23 +141,21 @@
           - access_key_2.status == 'Active'
       vars:
         access_key_1: "{{ access_key_info.access_keys[0] }}"
-        access_key_2: "{{ access_key_info.access_keys[1] }}"
+
     - name: Create a third key without rotation
-      iam_access_key:
+      register: create_key_3
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
-        no_log: true
-      register: create_key_3
-      ignore_errors: true
+
     - ansible.builtin.assert:
         that:
           # If Amazon update the limits we may need to change the expectation here.
           - create_key_3 is failed
 
     - name: Fetch IAM key info (2 keys - not changed)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -187,14 +179,13 @@
           - access_key_2.status == 'Active'
       vars:
         access_key_1: "{{ access_key_info.access_keys[0] }}"
-        access_key_2: "{{ access_key_info.access_keys[1] }}"
+
     - name: Create a third key - rotation enabled (check_mode)
-      iam_access_key:
+      register: create_key_3
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
-        rotate_keys: true
-      register: create_key_3
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - create_key_3 is successful
@@ -203,12 +194,11 @@
           - create_key_3.deleted_access_key_id == create_key_1.access_key.access_key_id
 
     - name: Create a second key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
         rotate_keys: true
-        no_log: true
-      register: create_key_3
+
     - ansible.builtin.assert:
         that:
           - create_key_3 is successful
@@ -225,9 +215,8 @@
           - create_key_3.access_key.status == 'Active'
 
     - name: Fetch IAM key info (2 keys - oldest rotated)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -251,25 +240,23 @@
           - access_key_2.status == 'Active'
       vars:
         access_key_1: "{{ access_key_info.access_keys[0] }}"
-        access_key_2: "{{ access_key_info.access_keys[1] }}"
+
     - name: Disable third key (check_mode)
-      iam_access_key:
+      register: disable_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: false
-      register: disable_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - disable_key is successful
           - disable_key is changed
 
     - name: Disable third key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: false
-      register: disable_key
+
     - ansible.builtin.assert:
         that:
           - disable_key is successful
@@ -285,23 +272,21 @@
           - disable_key.access_key.status == 'Inactive'
 
     - name: Disable third key - idempotency (check_mode)
-      iam_access_key:
+      register: disable_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: false
-      register: disable_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - disable_key is successful
           - disable_key is not changed
 
     - name: Disable third key - idempotency
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: false
-      register: disable_key
+
     - ansible.builtin.assert:
         that:
           - disable_key is successful
@@ -317,9 +302,8 @@
           - disable_key.access_key.status == 'Inactive'
 
     - name: Fetch IAM key info (2 keys - 1 disabled)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -343,23 +327,21 @@
           - access_key_2.status == 'Inactive'
       vars:
         access_key_1: "{{ access_key_info.access_keys[0] }}"
-        access_key_2: "{{ access_key_info.access_keys[1] }}"
+
     - name: Touch third key - no change (check_mode)
-      iam_access_key:
-        user_name: "{{ test_user }}"
-        id: "{{ create_key_3.access_key.access_key_id }}"
       register: touch_key
-      check_mode: true
+      community.aws.iam_access_key:
+        user_name: "{{ test_user }}"
+
     - ansible.builtin.assert:
         that:
           - touch_key is successful
           - touch_key is not changed
 
     - name: Touch third key - no change
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
-        id: "{{ create_key_3.access_key.access_key_id }}"
-      register: touch_key
+
     - ansible.builtin.assert:
         that:
           - touch_key is successful
@@ -377,23 +359,21 @@
     # ==================================================================================
 
     - name: Enable third key (check_mode)
-      iam_access_key:
+      register: enable_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: true
-      register: enable_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - enable_key is successful
           - enable_key is changed
 
     - name: Enable third key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: true
-      register: enable_key
+
     - ansible.builtin.assert:
         that:
           - enable_key is successful
@@ -409,23 +389,21 @@
           - enable_key.access_key.status == 'Active'
 
     - name: Enable third key - idempotency (check_mode)
-      iam_access_key:
+      register: enable_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: true
-      register: enable_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - enable_key is successful
           - enable_key is not changed
 
     - name: Enable third key - idempotency
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: true
-      register: enable_key
+
     - ansible.builtin.assert:
         that:
           - enable_key is successful
@@ -443,21 +421,19 @@
     # ==================================================================================
 
     - name: Touch third key again - no change (check_mode)
-      iam_access_key:
-        user_name: "{{ test_user }}"
-        id: "{{ create_key_3.access_key.access_key_id }}"
       register: touch_key
-      check_mode: true
+      community.aws.iam_access_key:
+        user_name: "{{ test_user }}"
+
     - ansible.builtin.assert:
         that:
           - touch_key is successful
           - touch_key is not changed
 
     - name: Touch third key again - no change
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
-        id: "{{ create_key_3.access_key.access_key_id }}"
-      register: touch_key
+
     - ansible.builtin.assert:
         that:
           - touch_key is successful
@@ -475,11 +451,10 @@
     # ==================================================================================
 
     - name: Re-Disable third key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        enabled: false
-      register: redisable_key
+
     - ansible.builtin.assert:
         that:
           - redisable_key is successful
@@ -487,13 +462,13 @@
           - redisable_key.access_key.status == 'Inactive'
 
     - ansible.builtin.pause:
-        seconds: 10
+
     - name: Test GetCallerIdentity - Key 2
       amazon.aws.aws_caller_info:
         access_key: "{{ create_key_2.access_key.access_key_id }}"
         secret_key: "{{ create_key_2.secret_access_key }}"
         session_token: "{{ omit }}"
-      register: caller_identity_2
+
     - ansible.builtin.assert:
         that:
           - caller_identity_2 is successful
@@ -505,7 +480,7 @@
         secret_key: "{{ create_key_1.secret_access_key }}"
         session_token: "{{ omit }}"
       register: caller_identity_1
-      ignore_errors: true
+
     - ansible.builtin.assert:
         that:
           - caller_identity_1 is failed
@@ -517,7 +492,7 @@
         secret_key: "{{ create_key_3.secret_access_key }}"
         session_token: "{{ omit }}"
       register: caller_identity_3
-      ignore_errors: true
+
     - ansible.builtin.assert:
         that:
           - caller_identity_3 is failed
@@ -526,46 +501,42 @@
     # ==================================================================================
 
     - name: Delete active key (check_mode)
-      iam_access_key:
+      register: delete_active_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_2.access_key.access_key_id }}"
-        state: absent
-      register: delete_active_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - delete_active_key is successful
           - delete_active_key is changed
 
     - name: Delete active key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_2.access_key.access_key_id }}"
-        state: absent
-      register: delete_active_key
+
     - ansible.builtin.assert:
         that:
           - delete_active_key is successful
           - delete_active_key is changed
 
     - name: Delete active key - idempotency (check_mode)
-      iam_access_key:
+      register: delete_active_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_2.access_key.access_key_id }}"
-        state: absent
-      register: delete_active_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - delete_active_key is successful
           - delete_active_key is not changed
 
     - name: Delete active key - idempotency
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_2.access_key.access_key_id }}"
-        state: absent
-      register: delete_active_key
+
     - ansible.builtin.assert:
         that:
           - delete_active_key is successful
@@ -574,46 +545,42 @@
     # ==================================================================================
 
     - name: Delete inactive key (check_mode)
-      iam_access_key:
+      register: delete_inactive_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        state: absent
-      register: delete_inactive_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - delete_inactive_key is successful
           - delete_inactive_key is changed
 
     - name: Delete inactive key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        state: absent
-      register: delete_inactive_key
+
     - ansible.builtin.assert:
         that:
           - delete_inactive_key is successful
           - delete_inactive_key is changed
 
     - name: Delete inactive key - idempotency (check_mode)
-      iam_access_key:
+      register: delete_inactive_key
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        state: absent
-      register: delete_inactive_key
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - delete_inactive_key is successful
           - delete_inactive_key is not changed
 
     - name: Delete inactive key - idempotency
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_3.access_key.access_key_id }}"
-        state: absent
-      register: delete_inactive_key
+
     - ansible.builtin.assert:
         that:
           - delete_inactive_key is successful
@@ -622,9 +589,8 @@
     # ==================================================================================
 
     - name: Fetch IAM key info (no keys)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -634,24 +600,22 @@
     # ==================================================================================
 
     - name: Create an inactive key (check_mode)
-      iam_access_key:
+      register: create_key_4
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
-        enabled: false
-      register: create_key_4
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - create_key_4 is successful
           - create_key_4 is changed
 
     - name: Create a key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         state: present
         enabled: false
-        no_log: true
-      register: create_key_4
+
     - ansible.builtin.assert:
         that:
           - create_key_4 is successful
@@ -667,9 +631,8 @@
           - create_key_4.access_key.status == 'Inactive'
 
     - name: Fetch IAM key info (1 inactive key)
-      iam_access_key_info:
-        user_name: "{{ test_user }}"
-      register: access_key_info
+      community.aws.iam_access_key_info:
+
     - ansible.builtin.assert:
         that:
           - access_key_info is successful
@@ -684,13 +647,12 @@
           - access_key_1.create_date == create_key_4.access_key.create_date
           - access_key_1.status == 'Inactive'
       vars:
-        access_key_1: "{{ access_key_info.access_keys[0] }}"
+
     - name: Disable new key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_4.access_key.access_key_id }}"
-        enabled: false
-      register: disable_new_key
+
     - ansible.builtin.assert:
         that:
           - disable_new_key is successful
@@ -701,11 +663,10 @@
     # Cleanup
 
     - name: Delete new key
-      iam_access_key:
+      community.aws.iam_access_key:
         user_name: "{{ test_user }}"
         id: "{{ create_key_4.access_key.access_key_id }}"
-        state: absent
-      register: delete_new_key
+
     - ansible.builtin.assert:
         that:
           - delete_new_key is successful
@@ -715,13 +676,12 @@
       amazon.aws.iam_user:
         name: "{{ test_user }}"
         state: absent
-      register: delete_user
+
     - ansible.builtin.assert:
         that:
           - delete_user is successful
           - delete_user is changed
 
-  always:
     - name: Remove test user
       amazon.aws.iam_user:
         name: "{{ test_user }}"
