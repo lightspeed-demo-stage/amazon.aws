@@ -12,6 +12,7 @@
   block:
     # Get some information about who we are before starting our tests
     # we'll need this as soon as we start working on the policies
+
     - name: get ARN of calling user
       amazon.aws.aws_caller_info:
       register: aws_caller_info
@@ -20,7 +21,6 @@
       ansible.builtin.set_fact:
         aws_account: "{{ aws_caller_info.account }}"
 
-    # ============================================================
     - name: create test iam role
       community.aws.iam_role:
         name: "{{ iam_role_name }}"
@@ -31,12 +31,10 @@
         state: present
       register: test_role
 
-    # ============================================================
     - name: pause to ensure role exists before using
       ansible.builtin.pause:
         seconds: 30
 
-    # ============================================================
     - name: test with no parameters
       community.aws.sts_assume_role:
         access_key: "{{ omit }}"
@@ -51,7 +49,6 @@
           - result.failed
           - "'missing required arguments:' in result.msg"
 
-    # ============================================================
     - name: test with only 'role_arn' parameter
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -64,7 +61,6 @@
           - result.failed
           - "'missing required arguments: role_session_name' in result.msg"
 
-    # ============================================================
     - name: test with only 'role_session_name' parameter
       community.aws.sts_assume_role:
         role_session_name: AnsibleTest
@@ -77,7 +73,6 @@
           - result.failed
           - "'missing required arguments: role_arn' in result.msg"
 
-    # ============================================================
     - name: test assume role with invalid policy
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -100,7 +95,6 @@
           - "'The policy is not in the valid JSON format.' in result.module_stderr"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume role with invalid duration seconds
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -116,7 +110,6 @@
           - "'duration_seconds' in result.msg"
           - "'cannot be converted to an int' in result.msg"
 
-    # ============================================================
     - name: test assume role with invalid external id
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -139,7 +132,6 @@
           - "'Member must satisfy regular expression pattern:' in result.module_stderr"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume role with invalid mfa serial number
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -162,7 +154,6 @@
           - "'Member must satisfy regular expression pattern:' in result.module_stderr"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume role with invalid mfa token code
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -185,7 +176,6 @@
           - "'Member must satisfy regular expression pattern:' in result.module_stderr"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume role with invalid role_arn
       community.aws.sts_assume_role:
         role_arn: invalid role arn
@@ -207,7 +197,6 @@
           - "'Member must have length greater than or equal to 20' in result.module_stderr"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume not existing sts role
       community.aws.sts_assume_role:
         role_arn: arn:aws:iam::123456789:role/non-existing-role
@@ -229,7 +218,6 @@
           - "'is not authorized to perform: sts:AssumeRole' in result.msg"
       when: result.module_stderr is defined
 
-    # ============================================================
     - name: test assume role
       community.aws.sts_assume_role:
         role_arn: "{{ test_role.iam_role.arn }}"
@@ -245,7 +233,6 @@
           - "'secret_key' in assumed_role.sts_creds"
           - "'session_token' in assumed_role.sts_creds"
 
-    # ============================================================
     - name: test that assumed credentials have IAM read-only access
       community.aws.iam_role:
         access_key: "{{ assumed_role.sts_creds.access_key }}"
@@ -264,7 +251,6 @@
           - not result.changed
           - "'iam_role' in result"
 
-    # ============================================================
     - name: test assumed role with unprivileged action
       community.aws.iam_role:
         access_key: "{{ assumed_role.sts_creds.access_key }}"
@@ -292,8 +278,8 @@
       # runs on Python3
       when: result.module_stderr is defined
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: delete test iam role
       community.aws.iam_role:
         name: "{{ iam_role_name }}"

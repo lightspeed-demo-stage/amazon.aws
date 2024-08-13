@@ -1,9 +1,8 @@
 ---
 # tasks file for Route53 integration tests
-
 - ansible.builtin.set_fact:
     zone_one: '{{ resource_prefix | replace("-", "") }}.one.ansible.test.'
-    zone_two: '{{ resource_prefix | replace("-", "") }}.two.ansible.test.'
+
 - ansible.builtin.debug:
     msg: Set zones {{ zone_one }} and {{ zone_two }}
 
@@ -31,7 +30,7 @@
         comment: Created in Ansible test {{ resource_prefix }}
         tags:
           TestTag: "{{ resource_prefix }}.z1"
-      register: z1
+
     - ansible.builtin.assert:
         that:
           - z1 is success
@@ -44,7 +43,7 @@
         query: hosted_zone
         hosted_zone_id: "{{ z1.zone_id }}"
         hosted_zone_method: details
-      register: hosted_zones
+
     - name: Assert newly created hosted zone only has NS and SOA records
       ansible.builtin.assert:
         that:
@@ -58,7 +57,7 @@
         comment: Created in Ansible test {{ resource_prefix }}
         tags:
           TestTag: "{{ resource_prefix }}.z2"
-      register: z2
+
     - ansible.builtin.assert:
         that:
           - z2 is success
@@ -79,7 +78,6 @@
           - hosted_zones.HostedZone.ResourceRecordSetCount == 2
           - hosted_zones.HostedZone.Config.PrivateZone
 
-    # Ensure that we can use the non-paginated list_by_name method with max_items
     - name: Get zone 1 details only
       amazon.aws.route53_info:
         query: hosted_zone
@@ -101,7 +99,7 @@
         record: qdn_test.{{ zone_one }}
         type: A
         value: 192.0.2.1
-      register: qdn
+
     - ansible.builtin.assert:
         that:
           - qdn is not failed
@@ -115,7 +113,7 @@
         zone: "{{ zone_one }}"
         record: qdn_test.{{ zone_one }}
         type: A
-      register: get_result
+
     - name: Check boto3 type get data
       ansible.builtin.assert:
         that:
@@ -181,7 +179,6 @@
         record_set: "{{ get_result.set }}"
         qdn_record: qdn_test.{{ zone_one }}
 
-    ## test A recordset creation and order adjustments
     - name: Create same A record using zone non-qualified domain
       amazon.aws.route53:
         state: present
@@ -189,7 +186,7 @@
         record: qdn_test.{{ zone_one[:-1] }}
         type: A
         value: 192.0.2.1
-      register: non_qdn
+
     - ansible.builtin.assert:
         that:
           - non_qdn is not failed
@@ -203,7 +200,7 @@
         record: zid_test.{{ zone_one }}
         type: A
         value: 192.0.2.1
-      register: zid
+
     - ansible.builtin.assert:
         that:
           - zid is not failed
@@ -218,7 +215,7 @@
         value:
           - 192.0.2.2
           - 192.0.2.1
-      register: mv_a_record
+
     - ansible.builtin.assert:
         that:
           - mv_a_record is not failed
@@ -233,13 +230,12 @@
         value:
           - 192.0.2.2
           - 192.0.2.1
-      register: mv_a_record
+
     - ansible.builtin.assert:
         that:
           - mv_a_record is not failed
           - mv_a_record is not changed
 
-    # Get resulting A record and ensure max_items is applied
     - name: get Route53 A record information
       amazon.aws.route53_info:
         type: A
@@ -265,7 +261,7 @@
         value:
           - 192.0.2.2
       register: del_a_record
-      ignore_errors: true
+
     - name: This should fail, because `overwrite` is false
       ansible.builtin.assert:
         that:
@@ -304,7 +300,6 @@
           - records.ResourceRecordSets[0].ResourceRecords|length == 1
           - records.ResourceRecordSets[0].ResourceRecords[0].Value == '192.0.2.2'
 
-    ## Test CNAME record creation and retrive info
     - name: Create CNAME record
       amazon.aws.route53:
         state: present
@@ -334,7 +329,6 @@
           - cname_records.ResourceRecordSets[0].ResourceRecords|length == 1
           - cname_records.ResourceRecordSets[0].ResourceRecords[0].Value == "order_test.{{ zone_one }}"
 
-    ## Test CAA record creation
     - name: Create a LetsEncrypt CAA record
       amazon.aws.route53:
         state: present
@@ -345,7 +339,7 @@
           - "0 issue \"letsencrypt.org;\""
           - "0 issuewild \"letsencrypt.org;\""
         overwrite: true
-      register: caa
+
     - ansible.builtin.assert:
         that:
           - caa is not failed
@@ -361,7 +355,7 @@
           - "0 issue \"letsencrypt.org;\""
           - "0 issuewild \"letsencrypt.org;\""
         overwrite: true
-      register: caa
+
     - ansible.builtin.assert:
         that:
           - caa is not failed
@@ -377,7 +371,7 @@
           - "0 issuewild \"letsencrypt.org;\""
           - "0 issue \"letsencrypt.org;\""
         overwrite: true
-      register: caa
+
     - name: This should not be changed, as CAA records are not order sensitive
       ansible.builtin.assert:
         that:
@@ -392,7 +386,7 @@
         type: A
         value:
           - 192.0.2.1
-      register: wc_a_record
+
     - ansible.builtin.assert:
         that:
           - wc_a_record is not failed
@@ -406,7 +400,7 @@
         type: A
         value:
           - 192.0.2.1
-      register: wc_a_record
+
     - ansible.builtin.assert:
         that:
           - wc_a_record is not failed
@@ -421,7 +415,7 @@
         value:
           - 192.0.2.2
         overwrite: true
-      register: wc_a_record
+
     - ansible.builtin.assert:
         that:
           - wc_a_record is not failed
@@ -435,7 +429,7 @@
         type: A
         value:
           - 192.0.2.2
-      register: wc_a_record
+
     - ansible.builtin.assert:
         that:
           - wc_a_record is not failed
@@ -450,7 +444,7 @@
         type: A
         value: 127.0.0.1
         ttl: 30
-      register: ttl30
+
     - name: check return values
       ansible.builtin.assert:
         that:
@@ -463,7 +457,7 @@
         zone: "{{ zone_one }}"
         record: localhost.{{ zone_one }}
         type: A
-      register: ttl30
+
     - name: check if record is deleted
       ansible.builtin.assert:
         that:
@@ -475,13 +469,12 @@
         zone: "{{ zone_one }}"
         record: localhost.{{ zone_one }}
         type: A
-      register: ttl30
+
     - name: check if record was deleted
       ansible.builtin.assert:
         that:
           - ttl30 is not changed
 
-    # Tests on zone two (private zone)
     - name: Create A record using zone fqdn
       amazon.aws.route53:
         state: present
@@ -490,7 +483,7 @@
         type: A
         value: 192.0.2.1
         private_zone: true
-      register: qdn
+
     - ansible.builtin.assert:
         that:
           - qdn is not failed
@@ -503,7 +496,7 @@
         record: qdn_test.{{ zone_two }}
         type: A
         private_zone: true
-      register: get_result
+
     - ansible.builtin.assert:
         that:
           - get_result.nameservers|length > 0
@@ -518,7 +511,7 @@
         record: notfound.{{ zone_two }}
         type: A
         private_zone: true
-      register: get_result
+
     - ansible.builtin.assert:
         that:
           - get_result.nameservers|length > 0
@@ -533,7 +526,7 @@
         type: A
         value: 192.0.2.1
         private_zone: true
-      register: non_qdn
+
     - ansible.builtin.assert:
         that:
           - non_qdn is not failed
@@ -547,7 +540,7 @@
         type: A
         value: 192.0.2.2
         private_zone: true
-      register: zid
+
     - ansible.builtin.assert:
         that:
           - zid is not failed
@@ -562,7 +555,7 @@
         value: 192.0.2.3
         private_zone: true
         vpc_id: "{{ vpc.vpc.id }}"
-      register: qdn
+
     - ansible.builtin.assert:
         that:
           - qdn is not failed
@@ -577,7 +570,7 @@
         value: 192.0.2.4
         private_zone: true
         vpc_id: "{{ vpc.vpc.id }}"
-      register: zid
+
     - ansible.builtin.assert:
         that:
           - zid is not failed
@@ -593,7 +586,7 @@
         alias_hosted_zone_id: "{{ z1.zone_id }}"
         value: zid_test.{{ zone_one }}
         overwrite: true
-      register: alias_record
+
     - name: This should be changed
       ansible.builtin.assert:
         that:
@@ -610,7 +603,7 @@
         alias_hosted_zone_id: "{{ z1.zone_id }}"
         value: zid_test.{{ zone_one }}
         overwrite: true
-      register: alias_record
+
     - name: This should not be changed
       ansible.builtin.assert:
         that:
@@ -628,7 +621,7 @@
         identifier: host1@www
         weight: 100
         region: "{{ omit }}"
-      register: weighted_record
+
     - name: This should be changed
       ansible.builtin.assert:
         that:
@@ -646,7 +639,7 @@
         identifier: host1@www
         weight: 100
         region: "{{ omit }}"
-      register: weighted_record
+
     - name: This should not be changed
       ansible.builtin.assert:
         that:
@@ -664,7 +657,7 @@
         identifier: host1@www
         weight: 0
         region: "{{ omit }}"
-      register: weighted_record
+
     - name: This should be changed
       ansible.builtin.assert:
         that:
@@ -682,14 +675,13 @@
         identifier: host1@www
         weight: 0
         region: "{{ omit }}"
-      register: weighted_record
+
     - name: This should not be changed
       ansible.builtin.assert:
         that:
           - weighted_record is not failed
           - weighted_record is not changed
 
-    #Test Geo Location - Continent Code
     - name: Create a record with geo_location - continent_code (check_mode)
       amazon.aws.route53:
         state: present
@@ -702,7 +694,7 @@
         geo_location:
           continent_code: NA
       check_mode: true
-      register: create_geo_continent_check_mode
+
     - ansible.builtin.assert:
         that:
           - create_geo_continent_check_mode is changed
@@ -723,7 +715,7 @@
         geo_location:
           continent_code: NA
       register: create_geo_continent
-    # Get resulting A record and geo_location parameters are applied
+
     - name: get Route53 A record information
       amazon.aws.route53_info:
         type: A
@@ -751,7 +743,7 @@
         ttl: 30
         geo_location:
           continent_code: NA
-      register: create_geo_continent_idem
+
     - ansible.builtin.assert:
         that:
           - create_geo_continent_idem is not changed
@@ -778,7 +770,6 @@
           - create_geo_continent_idem_check is not failed
           - '"route53:ChangeResourceRecordSets" not in create_geo_continent_idem_check.resource_actions'
 
-    #Test Geo Location - Country Code
     - name: Create a record with geo_location - country_code (check_mode)
       amazon.aws.route53:
         state: present
@@ -791,7 +782,7 @@
         geo_location:
           country_code: US
       check_mode: true
-      register: create_geo_country_check_mode
+
     - ansible.builtin.assert:
         that:
           - create_geo_country_check_mode is changed
@@ -810,7 +801,7 @@
         geo_location:
           country_code: US
       register: create_geo_country
-    # Get resulting A record and geo_location parameters are applied
+
     - name: get Route53 A record information
       amazon.aws.route53_info:
         type: A
@@ -818,7 +809,7 @@
         hosted_zone_id: "{{ z1.zone_id }}"
         start_record_name: geo-test-2.{{ zone_one }}
         max_items: 1
-      register: result
+
     - ansible.builtin.assert:
         that:
           - create_geo_country is changed
@@ -837,7 +828,7 @@
         ttl: 30
         geo_location:
           country_code: US
-      register: create_geo_country_idem
+
     - ansible.builtin.assert:
         that:
           - create_geo_country_idem is not changed
@@ -864,7 +855,6 @@
           - create_geo_country_idem_check is not failed
           - '"route53:ChangeResourceRecordSets" not in create_geo_country_idem_check.resource_actions'
 
-    #Test Geo Location - Subdivision Code
     - name: Create a record with geo_location - subdivision_code (check_mode)
       amazon.aws.route53:
         state: present
@@ -878,7 +868,7 @@
           country_code: US
           subdivision_code: TX
       check_mode: true
-      register: create_geo_subdivision_check_mode
+
     - ansible.builtin.assert:
         that:
           - create_geo_subdivision_check_mode is changed
@@ -898,7 +888,7 @@
           country_code: US
           subdivision_code: TX
       register: create_geo_subdivision
-    # Get resulting A record and geo_location parameters are applied
+
     - name: get Route53 A record information
       amazon.aws.route53_info:
         type: A
@@ -906,7 +896,7 @@
         hosted_zone_id: "{{ z1.zone_id }}"
         start_record_name: geo-test-3.{{ zone_one }}
         max_items: 1
-      register: result
+
     - ansible.builtin.assert:
         that:
           - create_geo_subdivision is changed
@@ -927,7 +917,7 @@
         geo_location:
           country_code: US
           subdivision_code: TX
-      register: create_geo_subdivision_idem
+
     - ansible.builtin.assert:
         that:
           - create_geo_subdivision_idem is not changed
@@ -955,9 +945,8 @@
           - create_geo_subdivision_idem_check is not failed
           - '"route53:ChangeResourceRecordSets" not in create_geo_subdivision_idem_check.resource_actions'
 
-  #Cleanup------------------------------------------------------
+    #Cleanup------------------------------------------------------
 
-  always:
     - name: delete a record with geo_location - continent_code
       amazon.aws.route53:
         state: absent
@@ -1011,9 +1000,8 @@
         zone: "{{ zone_one }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: "{{ item.AliasTarget.DNSName }}"
+        value: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       ignore_errors: true
-      loop: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"AliasTarget" in item'
 
@@ -1023,12 +1011,11 @@
         zone: "{{ zone_one }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: '{{ item.ResourceRecords | map(attribute="Value") | join(",") }}'
+        value: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
         weight: "{{ item.Weight | default(omit) }}"
         identifier: "{{ item.SetIdentifier }}"
         region: "{{ omit }}"
       ignore_errors: true
-      loop: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"ResourceRecords" in item'
         - '"SetIdentifier" in item'
@@ -1039,9 +1026,8 @@
         zone: "{{ zone_one }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: '{{ item.ResourceRecords | map(attribute="Value") | join(",") }}'
+        value: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       ignore_errors: true
-      loop: '{{ z1_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"ResourceRecords" in item'
 
@@ -1058,10 +1044,9 @@
         zone: "{{ zone_two }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: "{{ item.AliasTarget.DNSName }}"
+        value: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
         private_zone: true
       ignore_errors: true
-      loop: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"AliasTarget" in item'
 
@@ -1071,12 +1056,11 @@
         zone: "{{ zone_two }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: '{{ item.ResourceRecords | map(attribute="Value") | join(",") }}'
+        value: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
         identifier: "{{ item.SetIdentifier }}"
         region: "{{ omit }}"
         private_zone: true
       ignore_errors: true
-      loop: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"ResourceRecords" in item'
         - '"SetIdentifier" in item'
@@ -1087,10 +1071,9 @@
         zone: "{{ zone_two }}"
         record: "{{ item.Name }}"
         type: "{{ item.Type }}"
-        value: '{{ item.ResourceRecords | map(attribute="Value") | join(",") }}'
+        value: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
         private_zone: true
       ignore_errors: true
-      loop: '{{ z2_records.ResourceRecordSets | selectattr("Type", "in", ["A", "AAAA", "CNAME", "CAA"]) | list }}'
       when:
         - '"ResourceRecords" in item'
 
