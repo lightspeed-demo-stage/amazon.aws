@@ -21,7 +21,7 @@
             aws_access_key: "{{ aws_access_key }}"
             aws_secret_key: "{{ aws_secret_key }}"
           register: session_token
-          no_log: true
+
         - name: Override initial tokens
           ansible.builtin.set_fact:
             session_access_key: "{{ session_token.sts_creds.access_key }}"
