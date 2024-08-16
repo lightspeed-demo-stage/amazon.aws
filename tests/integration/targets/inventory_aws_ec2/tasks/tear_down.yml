@@ -29,12 +29,12 @@
         state: absent
 
     - name: remove setup security group
-      ec2_security_group:
+      ignore_errors: true
+      amazon.aws.ec2_security_group:
         name: "{{ resource_prefix }}_setup"
         description: created by Ansible integration tests
         state: absent
         vpc_id: "{{ vpc_id }}"
-      ignore_errors: true
 
     - name: remove setup subnet
       amazon.aws.ec2_vpc_subnet:
