@@ -12,6 +12,7 @@
     # ============================================================
 
     # SETUP: vpc, ec2 key pair, subnet, security group, ec2 instance, snapshot
+
     - name: create a VPC to work in
       amazon.aws.ec2_vpc_net:
         cidr_block: "{{ vpc_cidr }}"
@@ -39,12 +40,12 @@
       register: setup_subnet
 
     - name: create a security group to use for creating an ec2 instance
-      ec2_security_group:
+      register: setup_sg
+      amazon.aws.ec2_security_group:
         name: "{{ ec2_ami_name }}_setup"
         description: created by Ansible integration tests
         state: present
         vpc_id: "{{ setup_vpc.vpc.id }}"
-      register: setup_sg
 
     - name: provision ec2 instance to create an image
       amazon.aws.ec2_instance:
@@ -731,8 +732,6 @@
 
   always:
     # ============================================================
-
-    # TEAR DOWN: snapshot, ec2 instance, ec2 key pair, security group, vpc
     - name: Announce teardown start
       ansible.builtin.debug:
         msg: "***** TESTING COMPLETE. COMMENCE TEARDOWN *****"
@@ -795,12 +794,12 @@
       ignore_errors: true
 
     - name: remove setup security group
-      ec2_security_group:
+      ignore_errors: true
+      amazon.aws.ec2_security_group:
         name: "{{ ec2_ami_name }}_setup"
         description: created by Ansible integration tests
         state: absent
         vpc_id: "{{ setup_vpc.vpc.id }}"
-      ignore_errors: true
 
     - name: remove setup subnet
       amazon.aws.ec2_vpc_subnet:
