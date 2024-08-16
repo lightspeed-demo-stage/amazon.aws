@@ -7,14 +7,14 @@
       session_token: "{{ security_token | default(omit) }}"
   block:
     - name: Ensure the resource doesn't exist
-      rds_cluster:
+      register: _result_delete_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         engine: "{{ engine}}"
         username: "{{ username }}"
         password: "{{ password }}"
         skip_final_snapshot: true
-      register: _result_delete_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -27,7 +27,8 @@
         region_dest: "{{ aws_region }}"
 
     - name: Create a source DB cluster
-      rds_cluster:
+      register: _result_create_src_db_cluster
+      amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}"
         state: present
         engine: "{{ engine}}"
@@ -37,7 +38,6 @@
         tags:
           Name: "{{ cluster_id }}"
           Created_by: Ansible rds_cluster tests
-      register: _result_create_src_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -69,9 +69,9 @@
           - "'vpc_security_groups' in _result_create_src_db_cluster"
 
     - name: Get info on DB cluster
-      rds_cluster_info:
-        db_cluster_identifier: "{{ cluster_id }}"
       register: _result_cluster_info
+      amazon.aws.rds_cluster_info:
+        db_cluster_identifier: "{{ cluster_id }}"
 
     - ansible.builtin.assert:
         that:
@@ -82,7 +82,8 @@
         src_db_cluster_arn: "{{ _result_cluster_info.clusters[0].db_cluster_arn}}"
 
     - name: Create a DB cluster read replica in a different region
-      rds_cluster:
+      register: _result_create_replica_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}-replica"
         state: present
         replication_source_identifier: "{{ src_db_cluster_arn }}"
@@ -92,7 +93,6 @@
           Name: "{{ cluster_id }}"
           Created_by: Ansible rds_cluster tests
         wait: true
-      register: _result_create_replica_db_cluster
 
     - ansible.builtin.assert:
         that:
@@ -124,7 +124,8 @@
           - "'vpc_security_groups' in _result_create_replica_db_cluster"
 
     - name: Test idempotence with a DB cluster read replica
-      rds_cluster:
+      register: _result_create_replica_db_cluster
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}-replica"
         state: present
         replication_source_identifier: "{{ src_db_cluster_arn }}"
@@ -133,17 +134,16 @@
         tags:
           Name: "{{ cluster_id }}"
           Created_by: Ansible rds_cluster tests
-      register: _result_create_replica_db_cluster
 
     - ansible.builtin.assert:
         that:
           - not _result_create_replica_db_cluster.changed
 
     - name: Get info of existing DB cluster
-      rds_cluster_info:
+      register: _result_cluster_info
+      amazon.aws.rds_cluster_info:
         db_cluster_identifier: "{{ cluster_id }}-replica"
         region: "{{ region_dest }}"
-      register: _result_cluster_info
 
     - ansible.builtin.assert:
         that:
@@ -151,42 +151,41 @@
     # - _result_cluster_info.clusters | length == 0
 
     - name: Promote the DB cluster read replica
-      rds_cluster:
+      register: _result_promote_replica_db_cluster
+      amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}-replica"
         state: present
         promote: true
         region: "{{ region_dest }}"
-      register: _result_promote_replica_db_cluster
 
     - ansible.builtin.assert:
         that:
           - _result_promote_replica_db_cluster.changed
 
     - name: Promote the DB cluster read replica (idempotence)
-      rds_cluster:
+      register: _result_promote_replica_db_cluster
+      amazon.aws.rds_cluster:
         cluster_id: "{{ cluster_id }}-replica"
         state: present
         promote: true
         region: "{{ region_dest }}"
-      register: _result_promote_replica_db_cluster
 
     - ansible.builtin.assert:
         that:
           - not _result_promote_replica_db_cluster.changed
 
-  always:
     - name: Remove the DB cluster
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}"
         state: absent
         skip_final_snapshot: true
         region: "{{ region_src }}"
-      ignore_errors: true
 
     - name: Remove the DB cluster read replica
-      rds_cluster:
+      ignore_errors: true
+      amazon.aws.rds_cluster:
         id: "{{ cluster_id }}-replica"
         state: absent
         skip_final_snapshot: true
         region: "{{ region_dest }}"
-      ignore_errors: true

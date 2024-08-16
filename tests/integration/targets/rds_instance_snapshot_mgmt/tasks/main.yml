@@ -44,12 +44,12 @@
           - result.tags.Created_by == 'Ansible rds_instance tests'
 
     - name: Create a snapshot
-      rds_instance_snapshot:
+      register: result
+      amazon.aws.rds_instance_snapshot:
         instance_id: "{{ instance_id }}"
         snapshot_id: "{{ snapshot_id }}"
         state: present
         wait: true
-      register: result
 
     - ansible.builtin.assert:
         that:
@@ -58,7 +58,6 @@
           - result.db_snapshot_identifier == snapshot_id
 
     # ------------------------------------------------------------------------------------------
-    # Test restoring db from snapshot
 
     - name: Restore DB from snapshot - check_mode
       amazon.aws.rds_instance:
@@ -125,7 +124,6 @@
           - result.db_instance_status == 'available'
 
     # ------------------------------------------------------------------------------------------
-    # Test final snapshot on deletion
 
     - name: Ensure instance exists prior to deleting
       amazon.aws.rds_instance_info:
@@ -202,16 +200,15 @@
         that:
           - not result.changed
 
-  always:
     - name: Remove snapshots
-      rds_instance_snapshot:
-        db_snapshot_identifier: "{{ item }}"
-        state: absent
-        wait: false
       ignore_errors: true
       with_items:
         - "{{ instance_id }}"
         - "{{ snapshot_id }}"
+      amazon.aws.rds_instance_snapshot:
+        db_snapshot_identifier: "{{ item }}"
+        state: absent
+        wait: false
 
     - name: Remove DB instances
       amazon.aws.rds_instance:
