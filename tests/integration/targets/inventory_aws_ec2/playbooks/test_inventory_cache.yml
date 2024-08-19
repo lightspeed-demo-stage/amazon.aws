@@ -9,7 +9,6 @@
           - "'aws_ec2' in groups"
           - groups.aws_ec2 | length > 0
 
-    - ansible.builtin.meta: refresh_inventory
     - name: assert refresh_inventory updated the cache
       ansible.builtin.assert:
         that:

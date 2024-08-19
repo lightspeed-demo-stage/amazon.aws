@@ -10,6 +10,7 @@
       region: "{{ aws_region }}"
   block:
   #TODO: test availability_zone and multi_az
+
     - name: Ensure the resource doesn't exist
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
@@ -180,7 +181,6 @@
           - '"port" in result.pending_modified_values or result.endpoint.port == 1150'
           - '"db_instance_class" in result.pending_modified_values or result.db_instance_class == modified_db_instance_class'
 
-  always:
     - name: Delete the instance
       amazon.aws.rds_instance:
         id: "{{ instance_id }}"
