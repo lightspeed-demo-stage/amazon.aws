@@ -109,7 +109,6 @@
           - updates_instance_info.instances[0].instance_id == instance_with_role.instances[0].instance_id
 
   always:
-  # We need to delete the instances before we can delete the roles
     - name: Terminate iam_instance_role instances
       amazon.aws.ec2_instance:
         state: absent
