@@ -116,8 +116,8 @@
         that:
           - output.changed
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure all buckets are deleted
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"

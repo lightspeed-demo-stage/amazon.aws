@@ -5,7 +5,7 @@
         local_bucket_name: "{{ bucket_name | hash('md5')}}.dotted"
 
     # ============================================================
-    #
+
     - name: Create bucket with dot in name
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
@@ -44,8 +44,8 @@
         that:
           - output is not changed
 
-  # ============================================================
-  always:
+    # ============================================================
+
     - name: Ensure all buckets are deleted
       amazon.aws.s3_bucket:
         name: "{{ local_bucket_name }}"
