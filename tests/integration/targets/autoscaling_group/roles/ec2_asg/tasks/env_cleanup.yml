@@ -1,12 +1,13 @@
 ---
 - name: kill asg
-  autoscaling_group:
-    name: "{{ resource_prefix }}-asg"
-    state: absent
   register: removed
   until: removed is not failed
   ignore_errors: true
   retries: 10
+  amazon.aws.autoscaling_group:
+    name: "{{ resource_prefix }}-asg"
+    state: absent
+
 - name: remove target group
   community.aws.elb_target_group:
     name: "{{ item }}"
@@ -45,9 +46,6 @@
   ignore_errors: true
   retries: 10
 - name: remove launch configs
-  autoscaling_launch_config:
-    name: "{{ item }}"
-    state: absent
   register: removed
   until: removed is not failed
   ignore_errors: true
@@ -55,6 +53,9 @@
   loop:
     - "{{ resource_prefix }}-lc"
     - "{{ resource_prefix }}-lc-2"
+  community.aws.autoscaling_launch_config:
+    name: "{{ item }}"
+    state: absent
 
 - name: delete launch template
   community.aws.ec2_launch_template:
@@ -65,15 +66,16 @@
   until: del_lt is not failed
   ignore_errors: true
 - name: remove the security group
-  ec2_security_group:
-    name: "{{ resource_prefix }}-sg"
-    description: a security group for ansible tests
-    vpc_id: "{{ testing_vpc.vpc.id }}"
-    state: absent
   register: removed
   until: removed is not failed
   ignore_errors: true
   retries: 10
+  amazon.aws.ec2_security_group:
+    name: "{{ resource_prefix }}-sg"
+    description: a security group for ansible tests
+    vpc_id: "{{ testing_vpc.vpc.id }}"
+    state: absent
+
 - name: remove routing rules
   amazon.aws.ec2_vpc_route_table:
     state: absent
