@@ -1,5 +1,5 @@
 ---
-namespace: "amazon"
+namespace: amazon
 name: aws
 version: 8.0.0-dev0
 readme: README.md
