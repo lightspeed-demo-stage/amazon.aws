@@ -3,13 +3,14 @@
   block:
     #----------------------------------------------------------------------
     - name: create a launch configuration
-      autoscaling_launch_config:
+      register: create_lc
+      community.aws.autoscaling_launch_config:
         name: "{{ resource_prefix }}-lc-tag-test"
         image_id: "{{ ec2_ami_id }}"
         region: "{{ aws_region }}"
         instance_type: t2.micro
         assign_public_ip: true
-      register: create_lc
+
     - name: ensure that lc is created
       ansible.builtin.assert:
         that:
@@ -19,7 +20,8 @@
 
     #----------------------------------------------------------------------
     - name: create a AutoScalingGroup to be used for tag_operations test
-      autoscaling_group:
+      register: create_asg
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         launch_config_name: "{{ resource_prefix }}-lc-tag-test"
         health_check_period: 60
@@ -29,7 +31,7 @@
         max_size: 1
         desired_capacity: 1
         region: "{{ aws_region }}"
-      register: create_asg
+
     - name: ensure that AutoScalingGroup is created
       ansible.builtin.assert:
         that:
@@ -40,23 +42,25 @@
     #----------------------------------------------------------------------
 
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.assert:
         that:
           - info_result.results[0].tags | length == 0
 
     - name: Tag asg - check_mode
-      autoscaling_group:
+      register: output
+      check_mode: true
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_a: value 1
             propagate_at_launch: false
           - tag_b: value 2
             propagate_at_launch: true
-      register: output
-      check_mode: true
+
     - ansible.builtin.assert:
         that:
           - output is changed
@@ -64,68 +68,74 @@
           - '"autoscaling:CreateOrUpdateTags" not in output.resource_actions'
 
     - name: Tag asg
-      autoscaling_group:
+      register: output
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_a: value 1
             propagate_at_launch: false
           - tag_b: value 2
             propagate_at_launch: true
-      register: output
+
     - ansible.builtin.assert:
         that:
           - output.tags | length == 2
           - output is changed
 
     - name: Re-Tag asg (different order)
-      autoscaling_group:
+      register: output
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_b: value 2
             propagate_at_launch: true
           - tag_a: value 1
             propagate_at_launch: false
-      register: output
+
     - ansible.builtin.assert:
         that:
           - output.tags | length == 2
           - output is not changed
 
     - name: Re-Tag asg new tags
-      autoscaling_group:
+      register: output
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_c: value 3
             propagate_at_launch: false
         purge_tags: true
-      register: output
+
     - ansible.builtin.assert:
         that:
           - output.tags | length == 1
           - output is changed
 
     - name: Re-Tag asg update propagate_at_launch
-      autoscaling_group:
+      register: output
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_c: value 3
             propagate_at_launch: true
-      register: output
+
     - ansible.builtin.assert:
         that:
           - output.tags | length == 1
           - output is changed
 
     - name: Remove all tags
-      autoscaling_group:
+      register: add_empty
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags: []
         purge_tags: true
-      register: add_empty
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -136,7 +146,8 @@
           - '"autoscaling:DeleteTags" in add_empty.resource_actions'
 
     - name: Add 4 new tags - do not purge existing tags
-      autoscaling_group:
+      register: add_result
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - lowercase spaced: hello cruel world
@@ -147,11 +158,12 @@
             propagate_at_launch: true
           - snake_case: simple_snake_case
             propagate_at_launch: false
-      register: add_result
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -165,7 +177,8 @@
           - '"autoscaling:CreateOrUpdateTags" in add_result.resource_actions'
 
     - name: Add 4 new tags - do not purge existing tags - idempotency
-      autoscaling_group:
+      register: add_result
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - lowercase spaced: hello cruel world
@@ -176,11 +189,12 @@
             propagate_at_launch: true
           - snake_case: simple_snake_case
             propagate_at_launch: false
-      register: add_result
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.assert:
         that:
           - add_result is not changed
@@ -188,7 +202,8 @@
           - '"autoscaling:CreateOrUpdateTags" not in add_result.resource_actions'
 
     - name: Add 2 new tags - purge existing tags
-      autoscaling_group:
+      register: add_purge_result
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_a: val_a
@@ -196,11 +211,12 @@
           - tag_b: val_b
             propagate_at_launch: true
         purge_tags: true
-      register: add_purge_result
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -216,18 +232,20 @@
           - '"autoscaling:CreateOrUpdateTags" in add_purge_result.resource_actions'
 
     - name: Re-tag ASG - modify values
-      autoscaling_group:
+      register: add_purge_result
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - tag_a: new_val_a
             propagate_at_launch: false
           - tag_b: new_val_b
             propagate_at_launch: true
-      register: add_purge_result
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.set_fact:
@@ -247,18 +265,20 @@
           - '"autoscaling:CreateOrUpdateTags" in add_purge_result.resource_actions'
 
     - name: Add 2 more tags - do not purge existing tags
-      autoscaling_group:
+      register: add_result
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags:
           - lowercase spaced: hello cruel world
             propagate_at_launch: false
           - Title Case: Hello Cruel World
             propagate_at_launch: true
-      register: add_result
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -272,15 +292,17 @@
           - '"autoscaling:CreateOrUpdateTags" in add_result.resource_actions'
 
     - name: Add empty tags with purge set to false to assert that existing tags are retained
-      autoscaling_group:
+      register: add_empty
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags: []
         purge_tags: false
-      register: add_empty
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -294,15 +316,17 @@
           - '"autoscaling:CreateOrUpdateTags" not in add_empty.resource_actions'
 
     - name: Add empty tags with purge set to true to assert that existing tags are removed
-      autoscaling_group:
+      register: add_empty
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         tags: []
         purge_tags: true
-      register: add_empty
+
     - name: Get asg info
-      autoscaling_group_info:
-        name: "{{ resource_prefix }}-asg-tag-test"
       register: info_result
+      amazon.aws.autoscaling_group_info:
+        name: "{{ resource_prefix }}-asg-tag-test"
+
     - ansible.builtin.set_fact:
         tag_keys: "{{ info_result.results[0].tags | map(attribute='key') | list }}"
     - ansible.builtin.assert:
@@ -320,18 +344,19 @@
 
   always:
     - name: kill asg created in this test
-      autoscaling_group:
+      register: removed
+      until: removed is not failed
+      ignore_errors: true
+      retries: 10
+      amazon.aws.autoscaling_group:
         name: "{{ resource_prefix }}-asg-tag-test"
         state: absent
+
+    - name: remove launch config created in this test
       register: removed
       until: removed is not failed
       ignore_errors: true
       retries: 10
-    - name: remove launch config created in this test
-      autoscaling_launch_config:
+      community.aws.autoscaling_launch_config:
         name: "{{ resource_prefix }}-lc-tag-test"
         state: absent
-      register: removed
-      until: removed is not failed
-      ignore_errors: true
-      retries: 10
